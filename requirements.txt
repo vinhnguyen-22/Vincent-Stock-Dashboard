@@ -13,3 +13,4 @@ tabulate
 python-dotenv
 langchain-google-genai
 dotenv
+plotly
