@@ -6,7 +6,12 @@ import pandas as pd
 import requests
 import streamlit as st
 
-from src.plots import plot_foreign_trading
+from src.plots import (
+    get_firm_pricing,
+    plot_firm_pricing,
+    plot_foreign_trading,
+    plot_proprietary_trading,
+)
 
 # Giao diện Streamlit
 st.set_page_config(
@@ -23,7 +28,7 @@ st.set_page_config(
 
 
 with st.sidebar:
-    stock = st.text_input("Nhập mã cổ phiếu", "VCB")
+    stock = st.text_input("Nhập mã cổ phiếu", "HPG")
     start_date = st.date_input("Chọn ngày bắt đầu", datetime(2025, 1, 1))
     end_option = st.checkbox("Nhập ngày kết thúc")
     if end_option == False:
@@ -43,5 +48,16 @@ st.title("Phân tích giao dịch nước ngoài cổ phiếu " + stock)
 col_1, col_2 = st.columns(2)
 
 if stock:
+    plot_foreign_trading(stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
     with col_1:
-        plot_foreign_trading(stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
+        plot_proprietary_trading(
+            stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
+        )
+    with col_1:
+        st.dataframe(get_firm_pricing(stock, start_date.strftime("%Y-%m-%d")))
+    with col_2:
+        plot_firm_pricing(stock, start_date.strftime("%Y-%m-%d"))
+
+if st.button("Refresh"):
+    st.caching.clear_cache()
+    st.experimental_rerun()
