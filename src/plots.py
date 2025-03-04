@@ -6,7 +6,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 import requests
 import streamlit as st
+from altair import Legend
 from tqdm import tqdm
+from vnstock import Vnstock
 
 from src.config import FIGURES_DIR, PROCESSED_DATA_DIR
 
@@ -84,6 +86,20 @@ def proprietary_trading_stock(stock, start, end):
         return None
 
 
+def foreigns_impact_stock(stock, start, end):
+    api_url = f"https://api-finfo.vndirect.com.vn/v4/proprietary_trading?q=code:{stock}~date:lte:{end}~date:gte:{start}&sort=date:desc&size=20"
+    try:
+        res = requests.get(url=api_url, headers=headers)
+        res.raise_for_status()
+        data = res.json()
+        df = pd.DataFrame(data["data"])
+        df.rename(columns={"date": "time"}, inplace=True)
+        return df
+    except requests.exceptions.RequestException as e:
+        print("Yêu cầu không thành công:", e)
+        return None
+
+
 def plot_firm_pricing(symbol, start_date):
     df = get_firm_pricing(symbol, start_date)
 
@@ -107,6 +123,8 @@ def plot_foreign_trading(stock, start_date, end_date):
     df["time"] = pd.to_datetime(df["time"])
     fig = go.Figure()
 
+    # stock = Vnstock().stock(symbol="ACB", source="TCBS")
+    # price = stock.quote.history(start=start_date, end=end_date, interval="1D")
     # Biểu đồ cột với màu dựa trên giá trị netVal
     fig.add_trace(
         go.Bar(
@@ -118,11 +136,11 @@ def plot_foreign_trading(stock, start_date, end_date):
     )
 
     # Biểu đồ đường cho sở hữu nước ngoài
-    ratio = -df["currentRoom"] / df["totalRoom"]
+    ratio = (df["totalRoom"] - df["currentRoom"]) / df["totalRoom"]
     fig.add_trace(
         go.Scatter(
             x=df["time"],
-            y=ratio,
+            y=round(ratio, 2),
             mode="lines",
             name="Sở hữu nước ngoài",
             line=dict(color="blue"),
