@@ -8,6 +8,7 @@ import streamlit as st
 
 from src.plots import (
     get_firm_pricing,
+    plot_close_price_and_ratio,
     plot_firm_pricing,
     plot_foreign_trading,
     plot_proprietary_trading,
@@ -49,6 +50,9 @@ col_1, col_2 = st.columns(2)
 
 if stock:
     plot_foreign_trading(stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
+    plot_close_price_and_ratio(
+        stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
+    )
     with col_1:
         plot_proprietary_trading(
             stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
@@ -59,5 +63,7 @@ if stock:
         plot_firm_pricing(stock, start_date.strftime("%Y-%m-%d"))
 
 if st.button("Refresh"):
+    st.caching.clear_cache()
+    st.experimental_rerun()
     st.caching.clear_cache()
     st.experimental_rerun()

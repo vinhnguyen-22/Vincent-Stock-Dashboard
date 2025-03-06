@@ -195,6 +195,51 @@ def plot_proprietary_trading(stock, start_date, end_date):
     st.pyplot(fig)
 
 
+def get_stock_data_with_ratio(symbol, start_date, end_date):
+    stock = Vnstock().stock(symbol=symbol, source="TCBS")
+    df = stock.quote.history(start=start_date, end=end_date, interval="1D")
+    foreign = foreigner_trading_stock(symbol, start=start_date, end=end_date)
+    foreign["time"] = pd.to_datetime(foreign["time"])
+    merged_df = pd.merge(df, foreign, on="time", how="right")
+    merged_df.fillna(method="ffill", inplace=True)
+    merged_df.dropna(subset=["currentRoom"], inplace=True)
+    merged_df["ratio"] = (merged_df["totalRoom"] - merged_df["currentRoom"]) / merged_df[
+        "totalRoom"
+    ]
+    result_df = merged_df[["time", "volume", "close", "ratio"]]
+    return result_df
+
+
+def plot_close_price_and_ratio(symbol, start_date, end_date):
+
+    result = get_stock_data_with_ratio(symbol, start_date, end_date)
+
+    fig = go.Figure()
+
+    # Add the close price trace
+    fig.add_trace(
+        go.Scatter(x=result["time"], y=result["close"], mode="lines", name="Close Price")
+    )
+
+    # Add the ratio trace
+    fig.add_trace(
+        go.Scatter(x=result["time"], y=result["ratio"], mode="lines", name="Ratio", yaxis="y2")
+    )
+
+    # Update layout for dual y-axes
+    fig.update_layout(
+        title_text=f"Tương quan giá và tỷ lệ sở hữu nước ngoài {symbol}",
+        xaxis_title="Thời gian",
+        yaxis_title="Giá trị giao dịch",
+        yaxis2=dict(title="Foreigner ownership", overlaying="y", side="right"),
+        template="plotly_white",
+        hovermode="x unified",
+        margin=dict(l=40, r=40, t=40, b=40),
+    )
+
+    st.plotly_chart(fig)
+
+
 def main(
     input_path: Path = PROCESSED_DATA_DIR / "dataset.csv",
     output_path: Path = FIGURES_DIR / "plot.png",
