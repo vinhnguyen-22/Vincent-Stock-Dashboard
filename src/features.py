@@ -40,8 +40,8 @@ def cf_analysis(stock, period):
 
 def plot_cashflow_analysis(stock, period):
     # Extract the relevant columns for the bar chart
-    buy_columns = ["topActiveBuyPct", "midActiveBuyPct", "botActiveBuyPct"]
-    sell_columns = ["topActiveSellPct", "midActiveSellPct", "botActiveSellPct"]
+    buy_columns = ["topActiveBuyVal", "midActiveBuyVal", "botActiveBuyVal"]
+    sell_columns = ["topActiveSellVal", "midActiveSellVal", "botActiveSellVal"]
     df = cf_analysis(stock, period)
     # Create a new DataFrame for the bar chart
     df_stacked = df[["date"] + buy_columns + sell_columns]
