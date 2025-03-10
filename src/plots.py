@@ -47,11 +47,12 @@ headers = {
 
 def get_firm_pricing(symbol, start_date):
     api_url = f"https://api-finfo.vndirect.com.vn/v4/recommendations?q=code:{symbol}~reportDate:gte:{start_date}&size=100&sort=reportDate:DESC"
+    print(api_url)
     try:
         res = requests.get(url=api_url, headers=headers, cookies=cookies)
         res.raise_for_status()
         data = res.json()
-        print(api_url)
+
         return pd.DataFrame(data["data"])
     except requests.exceptions.RequestException as e:
         print("Yêu cầu không thành công:", e)
@@ -123,9 +124,6 @@ def plot_foreign_trading(stock, start_date, end_date):
     df["time"] = pd.to_datetime(df["time"])
     fig = go.Figure()
 
-    # stock = Vnstock().stock(symbol="ACB", source="TCBS")
-    # price = stock.quote.history(start=start_date, end=end_date, interval="1D")
-    # Biểu đồ cột với màu dựa trên giá trị netVal
     fig.add_trace(
         go.Bar(
             x=df["time"],
