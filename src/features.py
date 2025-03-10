@@ -26,7 +26,7 @@ def cf_analysis(stock, period):
         for i in range(period + 1):
             date = start_date + timedelta(days=i)
             date = date.strftime("%Y-%m-%d")
-            api_url = f"https://api-finfo.vndirect.com.vn/v4/cashflow_analysis/latest?order=time&where=code:{stock}~period:30M&filter=date:{date}"
+            api_url = f"https://api-finfo.vndirect.com.vn/v4/cashflow_analysis/latest?order=time&where=code:{stock}~period:1D&filter=date:{date}"
             res = requests.get(url=api_url, headers=headers)
             res.raise_for_status()
             data = res.json()
