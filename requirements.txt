@@ -2,6 +2,7 @@ langchain
 langchain-community
 langchain-openai
 langchain-experimental
+langchain-groq
 streamlit
 pandas
 matplotlib
@@ -15,3 +16,4 @@ langchain-google-genai
 dotenv
 plotly
 vnstock
+streamlit_tags

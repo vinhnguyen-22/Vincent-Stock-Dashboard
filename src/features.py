@@ -1,3 +1,4 @@
+from ast import Or
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -8,7 +9,6 @@ import plotly.graph_objects as go
 import requests
 import seaborn as sb
 import streamlit as st
-from vnstock import Vnstock
 
 headers = {
     # "X-Request-Id": id,
@@ -40,9 +40,29 @@ def cf_analysis(stock, period):
 
 def plot_cashflow_analysis(stock, period):
     # Extract the relevant columns for the bar chart
-    buy_columns = ["topActiveBuyVal", "midActiveBuyVal", "botActiveBuyVal"]
-    sell_columns = ["topActiveSellVal", "midActiveSellVal", "botActiveSellVal"]
+
     df = cf_analysis(stock, period)
+    df.rename(
+        columns={
+            "topActiveBuyVal": "Shark buy",
+            "midActiveBuyVal": "Wolf buy",
+            "botActiveBuyVal": "Sheep buy",
+            "topActiveSellVal": "Shark sell",
+            "midActiveSellVal": "Wolf sell",
+            "botActiveSellVal": "Sheep sell",
+        },
+        inplace=True,
+    )
+    buy_columns = [
+        "Shark buy",
+        "Wolf buy",
+        "Sheep buy",
+    ]
+    sell_columns = [
+        "Shark sell",
+        "Wolf sell",
+        "Sheep sell",
+    ]
     # Create a new DataFrame for the bar chart
     df_stacked = df[["date"] + buy_columns + sell_columns]
 
@@ -83,8 +103,9 @@ def plot_cashflow_analysis(stock, period):
 
 
 def main():
-    # ---- REPLACE THIS WITH YOUR OWN CODE ----
-    pass
+    stock = "VIC"
+    period = 30
+    plot_cashflow_analysis(stock, period)
 
 
 if __name__ == "__main__":

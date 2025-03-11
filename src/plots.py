@@ -182,12 +182,6 @@ def plot_proprietary_trading(stock, start_date, end_date):
     )
     # ax1.legend(loc="upper left")
     ax1.tick_params(axis="x", rotation=45)
-
-    # Trục y thứ hai cho biểu đồ đường
-    # ax2 = ax1.twinx()
-    # ratio = -df["currentRoom"] / df["totalRoom"]
-    # ax2.plot(df["time"], ratio, label="Sở hữu nước ngoài", color="blue")
-    # ax2.set_ylabel("foreigner ownership")
     fig.legend(loc="lower center", ncol=3)
     plt.grid()
     st.pyplot(fig)
