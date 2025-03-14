@@ -24,6 +24,10 @@ from src.plots import (
 load_dotenv()
 
 
+def display_info_stock():
+    pass
+
+
 def configure_streamlit():
     st.set_page_config(
         page_title="Vincent App",
@@ -56,32 +60,32 @@ def get_sidebar_inputs():
             end_date = st.date_input("Chọn ngày kết thúc", start_date + timedelta(days=30))
 
         st.header("📃 Chọn trang")
-        page = st.radio("", ["Phân tích giao dịch", "Dòng tiền", "Danh mục cổ phiếu"])
+        page = st.radio("", ["Phân Tích Giao Dịch", "Phân Tích Dòng Tiền", "Phân Bổ Danh Mục"])
     return stock, start_date, end_date, page
 
 
 def display_cashflow_analysis(stock, df_price, start_date, end_date):
     st.title(f"Phân tích dòng tiền cổ phiếu {stock}")
-    plot_price_chart(df_price)
     plot_cashflow_analysis(stock, (end_date - start_date).days)
+    plot_price_chart(df_price)
 
 
 def display_portfolio_analysis(stocks):
-    st.title("Danh mục cổ phiếu")
-    if stocks and st.button("Tính toán"):
+    st.title("Phân Bổ Tỷ Trọng Danh Mục")
+    if stocks:
         price = get_port_price(stocks, "2015-01-01", "2025-01-01")
         port = get_port(price=price)
-        st.dataframe(port)
+        st.dataframe(port, use_container_width=True)
     if st.button("Tối Ưu"):
         price = get_port_price(stocks, "2015-01-01", "2025-01-01")
         port = get_port(price=price)
         optimal_portfolio = calculate_optimal_portfolio(stocks, price, port)
-        st.dataframe(optimal_portfolio)
+        st.dataframe(optimal_portfolio, use_container_width=True)
         plot_optimal_portfolio_chart(optimal_portfolio)
 
 
 def display_trading_analysis(stock, df_price, start_date, end_date):
-    st.title(f"Phân tích giao dịch nước ngoài cổ phiếu {stock}")
+    st.title(f"PHÂN TÍCH GIAO DỊCH CỔ PHIẾU {stock}")
     st.subheader("ĐỊNH GIÁ TỪ CÁC CÔNG TY CHỨNG KHOÁN")
     plot_firm_pricing(stock, "2024-01-01")
     st.subheader("GIAO DỊCH CỦA TỔ CHỨC VÀ NƯỚC NGOÀI")
@@ -106,9 +110,9 @@ def main():
         df_price = get_stock_price(
             stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
         )
-        if page == "Dòng tiền":
+        if page == "Phân Tích Dòng Tiền":
             display_cashflow_analysis(stock, df_price, start_date, end_date)
-        elif page == "Danh mục cổ phiếu":
+        elif page == "Phân Bổ Danh Mục":
             stocks = st_tags(
                 label="Nhập mã chứng khoán ở đây",
                 text="Press enter to add more",
@@ -120,7 +124,7 @@ def main():
             display_portfolio_analysis(stocks)
         else:
             display_trading_analysis(stock, df_price, start_date, end_date)
-            st.subheader("Nhận định từ DeepSeek")
+            # st.subheader("Nhận định từ DeepSeek")
 
 
 if __name__ == "__main__":
