@@ -4,15 +4,16 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from pyparsing import col
 import requests
 import streamlit as st
 from altair import Legend
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama.llms import OllamaLLM
-from src.config import FIGURES_DIR, PROCESSED_DATA_DIR
+from pyparsing import col
 from tqdm import tqdm
 from vnstock import Vnstock
+
+from src.config import FIGURES_DIR, PROCESSED_DATA_DIR
 
 cookies = {
     "vnds-uuid": "4408bacf-3ab6-44f4-a8bf-e1f775a4cfd1",
@@ -110,17 +111,18 @@ def plot_firm_pricing(symbol, start_date):
             st.dataframe(df)
         with col_2:
             fig = px.scatter(
-            df,
-            x="reportDate",
-            y="targetPrice",
-            color="firm",
-            title=f"Định giá từ các công ty chứng khoán với cổ phiếu {symbol}",
-            labels={
-                "reportDate": "Ngày báo cáo",
-                "targetPrice": "Giá mục tiêu",
-                "firm": "Công ty chứng khoán"
-            },
-            text="targetPrice")
+                df,
+                x="reportDate",
+                y="targetPrice",
+                color="firm",
+                title=f"Định giá từ các công ty chứng khoán với cổ phiếu {symbol}",
+                labels={
+                    "reportDate": "Ngày báo cáo",
+                    "targetPrice": "Giá mục tiêu",
+                    "firm": "Công ty chứng khoán",
+                },
+                text="targetPrice",
+            )
             fig.update_traces(textposition="top center")
 
             st.plotly_chart(fig, use_container_width=True)
@@ -147,7 +149,7 @@ def plot_foreign_trading(stock, start_date, end_date):
         fig.add_trace(
             go.Scatter(
                 x=df["time"],
-                y=round(ratio, 2)*100,
+                y=round(ratio, 2) * 100,
                 mode="lines",
                 name="(%) Sở hữu nước ngoài",
                 line=dict(color="blue"),
@@ -203,14 +205,13 @@ def plot_proprietary_trading(stock, start_date, end_date):
         st.write("Không có dữ liệu")
 
 
-
-def get_stock_data_with_ratio(df_price,symbol, start_date, end_date):
+def get_stock_data_with_ratio(df_price, symbol, start_date, end_date):
     # stock = Vnstock().stock(symbol=symbol, source="TCBS")
     # df = stock.quote.history(start=start_date, end=end_date, interval="1D")
     foreign = foreigner_trading_stock(symbol, start=start_date, end=end_date)
     foreign["time"] = pd.to_datetime(foreign["time"])
     merged_df = pd.merge(df_price, foreign, on="time", how="right")
-    merged_df.fillna(method="ffill", inplace=True)
+    merged_df.ffill(inplace=True)
     merged_df.dropna(subset=["currentRoom"], inplace=True)
     merged_df["ratio"] = (merged_df["totalRoom"] - merged_df["currentRoom"]) / merged_df[
         "totalRoom"
@@ -218,17 +219,18 @@ def get_stock_data_with_ratio(df_price,symbol, start_date, end_date):
     result_df = merged_df[["time", "volume", "close", "ratio"]]
     return result_df
 
-def get_stock_price(symbol,start_date,end_date):
+
+def get_stock_price(symbol, start_date, end_date):
     stock = Vnstock().stock(symbol=symbol, source="TCBS")
     df = stock.quote.history(start=start_date, end=end_date, interval="1D")
     df["time"] = pd.to_datetime(df["time"])
     return df
 
 
-def plot_close_price_and_ratio(df_price,symbol, start_date, end_date):
+def plot_close_price_and_ratio(df_price, symbol, start_date, end_date):
     try:
-        
-        result = get_stock_data_with_ratio(df_price,symbol, start_date, end_date)
+
+        result = get_stock_data_with_ratio(df_price, symbol, start_date, end_date)
 
         fig = go.Figure()
 
@@ -239,7 +241,13 @@ def plot_close_price_and_ratio(df_price,symbol, start_date, end_date):
 
         # Add the ratio trace
         fig.add_trace(
-            go.Scatter(x=result["time"], y=round(result["ratio"] * 100, 2), mode="lines", name="Ratio (%)", yaxis="y2")
+            go.Scatter(
+                x=result["time"],
+                y=round(result["ratio"] * 100, 2),
+                mode="lines",
+                name="Ratio (%)",
+                yaxis="y2",
+            )
         )
 
         # Update layout for dual y-axes
