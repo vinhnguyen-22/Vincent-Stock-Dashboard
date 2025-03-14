@@ -1,6 +1,7 @@
 langchain
 langchain-community
 langchain-openai
+langgraph
 langchain-experimental
 langchain-groq
 streamlit
@@ -17,3 +18,6 @@ dotenv
 plotly
 vnstock
 streamlit_tags
+google
+langchain-core
+langchain_ollama

@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 import requests
 import seaborn as sb
 import streamlit as st
+from vnstock3 import Vnstock
 
 headers = {
     # "X-Request-Id": id,
@@ -37,6 +38,20 @@ def cf_analysis(stock, period):
         print("Yêu cầu không thành công:", e)
         return None
 
+def plot_price_chart(df):
+    try:
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=df["time"], y=df["close"], mode='lines', name='Close Price'))
+        fig.update_layout(
+            title="Biểu đồ giá cổ phiếu",
+            xaxis_title="Thời gian",
+            yaxis_title="Giá đóng cửa",
+            template="plotly_white"
+        )
+        
+        st.plotly_chart(fig)
+    except Exception as e:
+        st.write("Không có dữ liệu:", e)
 
 def plot_cashflow_analysis(stock, period):
     # Extract the relevant columns for the bar chart

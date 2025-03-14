@@ -4,13 +4,15 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from pyparsing import col
 import requests
 import streamlit as st
 from altair import Legend
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_ollama.llms import OllamaLLM
+from src.config import FIGURES_DIR, PROCESSED_DATA_DIR
 from tqdm import tqdm
 from vnstock import Vnstock
-
-from src.config import FIGURES_DIR, PROCESSED_DATA_DIR
 
 cookies = {
     "vnds-uuid": "4408bacf-3ab6-44f4-a8bf-e1f775a4cfd1",
@@ -47,7 +49,6 @@ headers = {
 
 def get_firm_pricing(symbol, start_date):
     api_url = f"https://api-finfo.vndirect.com.vn/v4/recommendations?q=code:{symbol}~reportDate:gte:{start_date}&size=100&sort=reportDate:DESC"
-    print(api_url)
     try:
         res = requests.get(url=api_url, headers=headers, cookies=cookies)
         res.raise_for_status()
@@ -87,7 +88,7 @@ def proprietary_trading_stock(stock, start, end):
         return None
 
 
-def foreigns_impact_stock(stock, start, end):
+def foreign_impact_stock(stock, start, end):
     api_url = f"https://api-finfo.vndirect.com.vn/v4/proprietary_trading?q=code:{stock}~date:lte:{end}~date:gte:{start}&sort=date:desc&size=20"
     try:
         res = requests.get(url=api_url, headers=headers)
@@ -102,97 +103,113 @@ def foreigns_impact_stock(stock, start, end):
 
 
 def plot_firm_pricing(symbol, start_date):
-    df = get_firm_pricing(symbol, start_date)
+    try:
+        df = get_firm_pricing(symbol, start_date)
+        col_1, col_2 = st.columns(2)
+        with col_1:
+            st.dataframe(df)
+        with col_2:
+            fig = px.scatter(
+            df,
+            x="reportDate",
+            y="targetPrice",
+            color="firm",
+            title=f"Định giá từ các công ty chứng khoán với cổ phiếu {symbol}",
+            labels={
+                "reportDate": "Ngày báo cáo",
+                "targetPrice": "Giá mục tiêu",
+                "firm": "Công ty chứng khoán"
+            },
+            text="targetPrice")
+            fig.update_traces(textposition="top center")
 
-    fig = px.scatter(
-        df,
-        x="reportDate",
-        y="targetPrice",
-        color="firm",
-        title=f"Định giá từ các công ty chứng khoán{symbol}",
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
+    except:
+        st.write("Không có dữ liệu")
 
 
 def plot_foreign_trading(stock, start_date, end_date):
-    """
-    Hàm để vẽ biểu đồ phân tích dữ liệu giao dịch.
-    :param data: Dictionary chứa dữ liệu giao dịch
-    """
-    df = pd.DataFrame(foreigner_trading_stock(stock, start=start_date, end=end_date))
-    df["time"] = pd.to_datetime(df["time"])
-    fig = go.Figure()
+    try:
+        df = pd.DataFrame(foreigner_trading_stock(stock, start_date, end_date))
+        df["time"] = pd.to_datetime(df["time"])
+        fig = go.Figure()
 
-    fig.add_trace(
-        go.Bar(
-            x=df["time"],
-            y=df["netVal"],
-            name="Net Value",
-            marker_color=df["netVal"].apply(lambda x: "lightgreen" if x >= 0 else "coral"),
+        fig.add_trace(
+            go.Bar(
+                x=df["time"],
+                y=df["netVal"],
+                name="Net Value",
+                marker_color=df["netVal"].apply(lambda x: "lightgreen" if x >= 0 else "coral"),
+            )
         )
-    )
-
-    # Biểu đồ đường cho sở hữu nước ngoài
-    ratio = (df["totalRoom"] - df["currentRoom"]) / df["totalRoom"]
-    fig.add_trace(
-        go.Scatter(
-            x=df["time"],
-            y=round(ratio, 2),
-            mode="lines",
-            name="Sở hữu nước ngoài",
-            line=dict(color="blue"),
-            yaxis="y2",
+        # Biểu đồ đường cho sở hữu nước ngoài
+        ratio = (df["totalRoom"] - df["currentRoom"]) / df["totalRoom"]
+        fig.add_trace(
+            go.Scatter(
+                x=df["time"],
+                y=round(ratio, 2)*100,
+                mode="lines",
+                name="(%) Sở hữu nước ngoài",
+                line=dict(color="blue"),
+                yaxis="y2",
+            )
         )
-    )
 
-    # Cấu hình layout
-    fig.update_layout(
-        title_text=f"Thống kê giao dịch và sở hữu nước ngoài với cổ phiếu {stock}",
-        xaxis_title="Thời gian",
-        yaxis_title="Giá trị giao dịch",
-        yaxis2=dict(title="Foreigner ownership", overlaying="y", side="right"),
-        template="plotly_white",
-        hovermode="x unified",
-        margin=dict(l=40, r=40, t=40, b=40),
-    )
+        # Cấu hình layout
+        fig.update_layout(
+            title_text=f"Thống kê giao dịch và sở hữu nước ngoài",
+            xaxis_title="",
+            yaxis_title="Giá trị giao dịch",
+            yaxis2=dict(title="Foreigner ownership", overlaying="y", side="right", range=[0, 1]),
+            template="plotly_white",
+            hovermode="x unified",
+            margin=dict(l=40, r=40, t=40, b=40),
+        )
 
-    st.plotly_chart(fig)
+        st.plotly_chart(fig)
+    except:
+        st.write("Không có dữ liệu")
 
 
 def plot_proprietary_trading(stock, start_date, end_date):
-    """
-    Hàm để vẽ biểu đồ phân tích dữ liệu giao dịch.
-    :param data: Dictionary chứa dữ liệu giao dịch
-    """
-    df = pd.DataFrame(proprietary_trading_stock(stock, start=start_date, end=end_date))
-    df["time"] = pd.to_datetime(df["time"])
+    try:
+        df = pd.DataFrame(proprietary_trading_stock(stock, start=start_date, end=end_date))
+        df["time"] = pd.to_datetime(df["time"])
 
-    # Vẽ biểu đồ miền cho BuyVal và SellVal, kết hợp biểu đồ đường cho currentRoom / totalRoom
-    fig, ax1 = plt.subplots(figsize=(12, 6))
-    fig.subplots_adjust(bottom=0.2)
+        fig = go.Figure()
 
-    # Biểu đồ miền
-    ax1.bar(df["time"], df["netVal"], label="Buy Value", color="green", alpha=0.6)
-    ax1.set_xlabel("")
-    ax1.set_ylabel("")
-    ax1.set_title(
-        "Thống kê giao dịch và sở hữu nước ngoài với cổ phiếu " + stock,
-        fontdict={"fontweight": "bold"},
-    )
-    # ax1.legend(loc="upper left")
-    ax1.tick_params(axis="x", rotation=45)
-    fig.legend(loc="lower center", ncol=3)
-    plt.grid()
-    st.pyplot(fig)
+        # Biểu đồ cột cho giá trị mua bán
+        fig.add_trace(
+            go.Bar(
+                x=df["time"],
+                y=df["netVal"],
+                name="Net Value",
+                marker_color=df["netVal"].apply(lambda x: "lightgreen" if x >= 0 else "coral"),
+            )
+        )
+
+        # Cấu hình layout
+        fig.update_layout(
+            title_text=f"Thống kê giao dịch và sở hữu nhà đầu tư tổ chức cổ phiếu {stock}",
+            xaxis_title="",
+            yaxis_title="Giá trị giao dịch",
+            template="plotly_white",
+            hovermode="x unified",
+            margin=dict(l=40, r=40, t=40, b=40),
+        )
+
+        st.plotly_chart(fig)
+    except:
+        st.write("Không có dữ liệu")
 
 
-def get_stock_data_with_ratio(symbol, start_date, end_date):
-    stock = Vnstock().stock(symbol=symbol, source="TCBS")
-    df = stock.quote.history(start=start_date, end=end_date, interval="1D")
+
+def get_stock_data_with_ratio(df_price,symbol, start_date, end_date):
+    # stock = Vnstock().stock(symbol=symbol, source="TCBS")
+    # df = stock.quote.history(start=start_date, end=end_date, interval="1D")
     foreign = foreigner_trading_stock(symbol, start=start_date, end=end_date)
     foreign["time"] = pd.to_datetime(foreign["time"])
-    merged_df = pd.merge(df, foreign, on="time", how="right")
+    merged_df = pd.merge(df_price, foreign, on="time", how="right")
     merged_df.fillna(method="ffill", inplace=True)
     merged_df.dropna(subset=["currentRoom"], inplace=True)
     merged_df["ratio"] = (merged_df["totalRoom"] - merged_df["currentRoom"]) / merged_df[
@@ -201,35 +218,44 @@ def get_stock_data_with_ratio(symbol, start_date, end_date):
     result_df = merged_df[["time", "volume", "close", "ratio"]]
     return result_df
 
+def get_stock_price(symbol,start_date,end_date):
+    stock = Vnstock().stock(symbol=symbol, source="TCBS")
+    df = stock.quote.history(start=start_date, end=end_date, interval="1D")
+    df["time"] = pd.to_datetime(df["time"])
+    return df
 
-def plot_close_price_and_ratio(symbol, start_date, end_date):
 
-    result = get_stock_data_with_ratio(symbol, start_date, end_date)
+def plot_close_price_and_ratio(df_price,symbol, start_date, end_date):
+    try:
+        
+        result = get_stock_data_with_ratio(df_price,symbol, start_date, end_date)
 
-    fig = go.Figure()
+        fig = go.Figure()
 
-    # Add the close price trace
-    fig.add_trace(
-        go.Scatter(x=result["time"], y=result["close"], mode="lines", name="Close Price")
-    )
+        # Add the close price trace
+        fig.add_trace(
+            go.Scatter(x=result["time"], y=result["close"], mode="lines", name="Close Price")
+        )
 
-    # Add the ratio trace
-    fig.add_trace(
-        go.Scatter(x=result["time"], y=result["ratio"], mode="lines", name="Ratio", yaxis="y2")
-    )
+        # Add the ratio trace
+        fig.add_trace(
+            go.Scatter(x=result["time"], y=round(result["ratio"] * 100, 2), mode="lines", name="Ratio (%)", yaxis="y2")
+        )
 
-    # Update layout for dual y-axes
-    fig.update_layout(
-        title_text=f"Tương quan giá và tỷ lệ sở hữu nước ngoài {symbol}",
-        xaxis_title="Thời gian",
-        yaxis_title="Giá trị giao dịch",
-        yaxis2=dict(title="Foreigner ownership", overlaying="y", side="right"),
-        template="plotly_white",
-        hovermode="x unified",
-        margin=dict(l=40, r=40, t=40, b=40),
-    )
+        # Update layout for dual y-axes
+        fig.update_layout(
+            title_text=f"Tương quan giá và tỷ lệ sở hữu nước ngoài cổ phiếu {symbol}",
+            xaxis_title="",
+            yaxis_title="Giá trị giao dịch",
+            yaxis2=dict(title="Foreigner ownership", overlaying="y", side="right"),
+            template="plotly_white",
+            hovermode="x unified",
+            margin=dict(l=40, r=40, t=40, b=40),
+        )
 
-    st.plotly_chart(fig)
+        st.plotly_chart(fig)
+    except:
+        st.write("Không có dữ liệu")
 
 
 def main(
