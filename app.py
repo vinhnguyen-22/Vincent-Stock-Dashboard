@@ -6,6 +6,7 @@ import streamlit as st
 from dotenv import load_dotenv
 from streamlit_tags import st_tags
 
+from src.features import plot_cashflow_analysis, plot_price_chart
 from src.optimize_portfolio import (
     calculate_optimal_portfolio,
     get_port,
