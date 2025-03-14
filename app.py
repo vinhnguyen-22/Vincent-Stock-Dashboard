@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
-from src.features import plot_cashflow_analysis, plot_price_chart
+from streamlit_tags import st_tags
+
 from src.optimize_portfolio import (
     calculate_optimal_portfolio,
     get_port,
@@ -18,9 +19,9 @@ from src.plots import (
     plot_foreign_trading,
     plot_proprietary_trading,
 )
-from streamlit_tags import st_tags
 
 load_dotenv()
+
 
 def configure_streamlit():
     st.set_page_config(
@@ -34,6 +35,7 @@ def configure_streamlit():
             "About": "# This is a header. This is an *extremely* cool app!",
         },
     )
+
 
 def get_sidebar_inputs():
     with st.sidebar:
@@ -56,10 +58,12 @@ def get_sidebar_inputs():
         page = st.radio("", ["Phân tích giao dịch", "Dòng tiền", "Danh mục cổ phiếu"])
     return stock, start_date, end_date, page
 
+
 def display_cashflow_analysis(stock, df_price, start_date, end_date):
     st.title(f"Phân tích dòng tiền cổ phiếu {stock}")
     plot_price_chart(df_price)
     plot_cashflow_analysis(stock, (end_date - start_date).days)
+
 
 def display_portfolio_analysis(stocks):
     st.title("Danh mục cổ phiếu")
@@ -74,6 +78,7 @@ def display_portfolio_analysis(stocks):
         st.dataframe(optimal_portfolio)
         plot_optimal_portfolio_chart(optimal_portfolio)
 
+
 def display_trading_analysis(stock, df_price, start_date, end_date):
     st.title(f"Phân tích giao dịch nước ngoài cổ phiếu {stock}")
     st.subheader("ĐỊNH GIÁ TỪ CÁC CÔNG TY CHỨNG KHOÁN")
@@ -81,18 +86,25 @@ def display_trading_analysis(stock, df_price, start_date, end_date):
     st.subheader("GIAO DỊCH CỦA TỔ CHỨC VÀ NƯỚC NGOÀI")
     col_1, col_2 = st.columns(2)
     with col_1:
-        plot_proprietary_trading(stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
+        plot_proprietary_trading(
+            stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
+        )
     with col_2:
         plot_foreign_trading(stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
     st.subheader("TƯƠNG QUAN GIAO DỊCH NƯỚC NGOÀI VÀ GIÁ CỔ PHIẾU")
-    plot_close_price_and_ratio(df_price, stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
+    plot_close_price_and_ratio(
+        df_price, stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
+    )
+
 
 def main():
     configure_streamlit()
     stock, start_date, end_date, page = get_sidebar_inputs()
 
     if stock:
-        df_price = get_stock_price(stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
+        df_price = get_stock_price(
+            stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
+        )
         if page == "Dòng tiền":
             display_cashflow_analysis(stock, df_price, start_date, end_date)
         elif page == "Danh mục cổ phiếu":
@@ -111,4 +123,5 @@ def main():
 
 
 if __name__ == "__main__":
+    main()
     main()
