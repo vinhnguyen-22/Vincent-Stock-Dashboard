@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 import pandas as pd
+import plotly.express as px
 import plotly.graph_objects as go
 import requests
 import streamlit as st
@@ -10,6 +11,10 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0",
 }
 
+API_URL_CASHFLOW = "https://api-finfo.vndirect.com.vn/v4/cashflow_analysis/latest"
+API_URL_FUND = "https://api-finfo.vndirect.com.vn/v4/fund_ratios"
+API_URL_OWNERSHIP = "https://api2.simplize.vn/api/company/ownership/ownership-breakdown"
+
 
 def fetch_cashflow_data(stock, period=30):
     today = datetime.now()
@@ -18,7 +23,7 @@ def fetch_cashflow_data(stock, period=30):
 
     for i in range(period + 1):
         date = (start_date + timedelta(days=i)).strftime("%Y-%m-%d")
-        api_url = f"https://api-finfo.vndirect.com.vn/v4/cashflow_analysis/latest?order=time&where=code:{stock}~period:1D&filter=date:{date}"
+        api_url = f"{API_URL_CASHFLOW}?order=time&where=code:{stock}~period:1D&filter=date:{date}"
         try:
             res = requests.get(url=api_url, headers=HEADERS)
             res.raise_for_status()
@@ -89,12 +94,7 @@ def plot_cashflow_analysis(stock, period):
 
     for col, color in zip(sell_columns, sell_colors):
         fig.add_trace(
-            go.Bar(
-                x=df_stacked["date"],
-                y=df_stacked[col],
-                name=col,
-                marker_color=color,
-            )
+            go.Bar(x=df_stacked["date"], y=df_stacked[col], name=col, marker_color=color)
         )
 
     fig.update_layout(
@@ -109,7 +109,9 @@ def plot_cashflow_analysis(stock, period):
 
 
 def get_fund_data(start_date):
-    api_url = f"https://api-finfo.vndirect.com.vn/v4/fund_ratios?q=reportDate:gte:{start_date}~ratioCode:IFC_HOLDING_COUNT_CR&size=1000"
+    api_url = (
+        f"{API_URL_FUND}?q=reportDate:gte:{start_date}~ratioCode:IFC_HOLDING_COUNT_CR&size=1000"
+    )
     try:
         res = requests.get(url=api_url, headers=HEADERS)
         res.raise_for_status()
@@ -153,10 +155,46 @@ def plot_pie_fund(df):
     st.plotly_chart(fig)
 
 
+def fetch_and_plot_ownership(symbol):
+    url = f"{API_URL_OWNERSHIP}/{symbol}"
+    response = requests.get(url)
+
+    if response.status_code != 200:
+        st.error("Không lấy được dữ liệu từ API.")
+        return
+
+    data = response.json().get("data", [])
+    if not data:
+        st.error("Dữ liệu không hợp lệ hoặc không có dữ liệu.")
+        return
+
+    records = [
+        {
+            "Investor Type": child["investorType"],
+            "Parent": parent["investorType"],
+            "Percentage": child["pctOfSharesOutHeldTier"],
+        }
+        for parent in data
+        for child in parent.get("children", [])
+    ]
+
+    df = pd.DataFrame(records)
+    fig = px.sunburst(
+        df,
+        path=["Parent", "Investor Type"],
+        values="Percentage",
+        color="Parent",
+    )
+
+    fig.update_traces(textinfo="label+percent entry", insidetextorientation="radial")
+    fig.update_layout(legend_title_text="Investor Types")
+
+    st.plotly_chart(fig)
+
+
 def main():
     pass
 
 
 if __name__ == "__main__":
     main()
-

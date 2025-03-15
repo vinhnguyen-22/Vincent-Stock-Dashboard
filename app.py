@@ -5,8 +5,10 @@ import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 from streamlit_tags import st_tags
+from vnstock import Vnstock
 
 from src.features import (
+    fetch_and_plot_ownership,
     get_fund_data,
     plot_cashflow_analysis,
     plot_pie_fund,
@@ -53,13 +55,13 @@ def get_sidebar_inputs():
         page = st.radio(
             "",
             [
-                "Tổng Quan Thị Trường",
                 "Phân Tích Giao Dịch",
+                "Tổng Quan Thị Trường",
                 "Phân Tích Dòng Tiền",
                 "Phân Bổ Danh Mục",
             ],
         )
-        stock = st.text_input("Nhập mã cổ phiếu", "HPG")
+        stock = st.text_input("Nhập mã cổ phiếu", "FPT")
         start_date = st.date_input("Chọn ngày bắt đầu", datetime(2025, 1, 1))
         end_option = st.checkbox("Nhập ngày kết thúc")
         if page != "Tổng Quan Thị Trường" and not end_option:
@@ -99,8 +101,20 @@ def display_portfolio_analysis(stocks):
 
 def display_trading_analysis(stock, df_price, start_date, end_date):
     st.title(f"PHÂN TÍCH GIAO DỊCH CỔ PHIẾU {stock}")
+    st.subheader("Thông Tin Cổ Phiếu")
+
+    col_1, col_2 = st.columns(2)
+    with col_1:
+        st.write("Thông Tin Cổ Phiếu")
+        company = Vnstock().stock(symbol="VCB", source="TCBS").company
+        st.dataframe(company.profile().T, use_container_width=True, height=300)
+    with col_2:
+        st.write("Cơ Cấu Cổ Đông")
+        fetch_and_plot_ownership(stock)
+
     st.subheader("ĐỊNH GIÁ TỪ CÁC CÔNG TY CHỨNG KHOÁN")
     plot_firm_pricing(stock, "2024-01-01")
+
     st.subheader("GIAO DỊCH CỦA TỔ CHỨC VÀ NƯỚC NGOÀI")
     col_1, col_2 = st.columns(2)
     with col_1:

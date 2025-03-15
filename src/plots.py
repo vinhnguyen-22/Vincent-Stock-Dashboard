@@ -108,6 +108,7 @@ def plot_firm_pricing(symbol, start_date):
         df = get_firm_pricing(symbol, start_date)
         col_1, col_2 = st.columns(2)
         with col_1:
+            st.write("Danh Sách Báo Cáo Định Gía")
             st.dataframe(df)
         with col_2:
             fig = px.scatter(
@@ -121,11 +122,17 @@ def plot_firm_pricing(symbol, start_date):
                     "targetPrice": "Giá mục tiêu",
                     "firm": "Công ty chứng khoán",
                 },
-                text="targetPrice",
+                text=df.apply(lambda row: f"{row['firm']} - {row['targetPrice']}", axis=1),
             )
-            fig.update_traces(textposition="top center")
+            fig.update_traces(
+                textposition="top center",
+            )
+            fig.update_layout(showlegend=False)
 
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(
+                fig,
+                use_container_width=True,
+            )
     except:
         st.write("Không có dữ liệu")
 
@@ -162,7 +169,7 @@ def plot_foreign_trading(stock, start_date, end_date):
             title_text=f"Thống kê giao dịch và sở hữu nước ngoài",
             xaxis_title="",
             yaxis_title="Giá trị giao dịch",
-            yaxis2=dict(title="Foreigner ownership", overlaying="y", side="right", range=[0, 1]),
+            yaxis2=dict(title="Foreigner ownership", overlaying="y", side="right", range=[0, 100]),
             template="plotly_white",
             hovermode="x unified",
             margin=dict(l=40, r=40, t=40, b=40),
