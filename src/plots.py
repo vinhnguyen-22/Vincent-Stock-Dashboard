@@ -192,7 +192,7 @@ def plot_proprietary_trading(stock, start_date, end_date):
 
         # Cấu hình layout
         fig.update_layout(
-            title_text=f"Thống kê giao dịch và sở hữu nhà đầu tư tổ chức cổ phiếu {stock}",
+            title_text=f"Thống kê giao dịch và sở hữu nhà đầu tư tổ chức",
             xaxis_title="",
             yaxis_title="Giá trị giao dịch",
             template="plotly_white",

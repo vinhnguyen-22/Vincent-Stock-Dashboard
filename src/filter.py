@@ -22,6 +22,11 @@ from src.plots import (
 )
 
 
+def filter_stock_fullroom():
+
+    pass
+
+
 def main():
     pass
 

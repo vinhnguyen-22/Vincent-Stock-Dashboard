@@ -6,7 +6,12 @@ import streamlit as st
 from dotenv import load_dotenv
 from streamlit_tags import st_tags
 
-from src.features import plot_cashflow_analysis, plot_price_chart
+from src.features import (
+    get_fund_data,
+    plot_cashflow_analysis,
+    plot_pie_fund,
+    plot_price_chart,
+)
 from src.optimize_portfolio import (
     calculate_optimal_portfolio,
     get_port,
@@ -44,10 +49,20 @@ def configure_streamlit():
 
 def get_sidebar_inputs():
     with st.sidebar:
+        st.header("📃 Chọn trang")
+        page = st.radio(
+            "",
+            [
+                "Tổng Quan Thị Trường",
+                "Phân Tích Giao Dịch",
+                "Phân Tích Dòng Tiền",
+                "Phân Bổ Danh Mục",
+            ],
+        )
         stock = st.text_input("Nhập mã cổ phiếu", "HPG")
         start_date = st.date_input("Chọn ngày bắt đầu", datetime(2025, 1, 1))
         end_option = st.checkbox("Nhập ngày kết thúc")
-        if not end_option:
+        if page != "Tổng Quan Thị Trường" and not end_option:
             time_range = st.selectbox("Chọn khoảng thời gian", ["Tuần", "Tháng", "Năm"], index=1)
             end_date = datetime.today()
             if time_range == "Tuần":
@@ -59,8 +74,6 @@ def get_sidebar_inputs():
         else:
             end_date = st.date_input("Chọn ngày kết thúc", start_date + timedelta(days=30))
 
-        st.header("📃 Chọn trang")
-        page = st.radio("", ["Phân Tích Giao Dịch", "Phân Tích Dòng Tiền", "Phân Bổ Danh Mục"])
     return stock, start_date, end_date, page
 
 
@@ -112,6 +125,10 @@ def main():
         )
         if page == "Phân Tích Dòng Tiền":
             display_cashflow_analysis(stock, df_price, start_date, end_date)
+        elif page == "Tổng Quan Thị Trường":
+            df = get_fund_data(start_date.strftime("%Y-%m-%d"))
+            plot_pie_fund(df)
+            pass
         elif page == "Phân Bổ Danh Mục":
             stocks = st_tags(
                 label="Nhập mã chứng khoán ở đây",

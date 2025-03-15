@@ -11,7 +11,7 @@ HEADERS = {
 }
 
 
-def fetch_cashflow_data(stock, period):
+def fetch_cashflow_data(stock, period=30):
     today = datetime.now()
     start_date = today - timedelta(days=period)
     all_data = []
@@ -89,7 +89,12 @@ def plot_cashflow_analysis(stock, period):
 
     for col, color in zip(sell_columns, sell_colors):
         fig.add_trace(
-            go.Bar(x=df_stacked["date"], y=df_stacked[col], name=col, marker_color=color)
+            go.Bar(
+                x=df_stacked["date"],
+                y=df_stacked[col],
+                name=col,
+                marker_color=color,
+            )
         )
 
     fig.update_layout(
@@ -103,11 +108,55 @@ def plot_cashflow_analysis(stock, period):
     st.plotly_chart(fig, use_container_width=True)
 
 
+def get_fund_data(start_date):
+    api_url = f"https://api-finfo.vndirect.com.vn/v4/fund_ratios?q=reportDate:gte:{start_date}~ratioCode:IFC_HOLDING_COUNT_CR&size=1000"
+    try:
+        res = requests.get(url=api_url, headers=HEADERS)
+        res.raise_for_status()
+        data = res.json()
+        df = pd.DataFrame(data["data"])
+        df.rename(columns={"reportDate": "time"}, inplace=True)
+        df["time"] = pd.to_datetime(df["time"])
+        return df
+    except requests.exceptions.RequestException as e:
+        print("Yêu cầu không thành công:", e)
+        return None
+
+
+def plot_pie_fund(df):
+    st.subheader("Biểu đồ phân bổ quỹ")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        years = sorted(df["time"].dt.year.unique(), reverse=True)
+        selected_year = st.selectbox("Chọn năm", years, index=0)
+        filtered_df = df[df["time"].dt.year == selected_year]
+
+    with col2:
+        months = sorted(df["time"].dt.month.unique(), reverse=True)
+        selected_month = st.selectbox("Chọn tháng", months, index=0)
+        filtered_df = filtered_df[filtered_df["time"].dt.month == selected_month]
+
+    df_top10 = filtered_df.nlargest(10, "value").sort_values(by="value", ascending=False)
+    fig = go.Figure(
+        data=[
+            go.Pie(
+                labels=df_top10["code"],
+                values=df_top10["value"],
+                hole=0.5,
+                textinfo="label+value",
+            )
+        ]
+    )
+    fig.update_layout(title="TOP 10 Cổ PHIẾU CÁC QUỸ ĐẦU TƯ ĐANG NẮM GIỮ", showlegend=False)
+    st.plotly_chart(fig)
+
+
 def main():
-    stock = "VIC"
-    period = 30
-    plot_cashflow_analysis(stock, period)
+    pass
 
 
 if __name__ == "__main__":
     main()
+
