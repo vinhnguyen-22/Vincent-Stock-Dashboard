@@ -110,7 +110,7 @@ def display_trading_analysis(stock, df_price, start_date, end_date):
     st.title(f"PHÂN TÍCH GIAO DỊCH CỔ PHIẾU {stock}")
     st.subheader("Thông Tin Cổ Phiếu")
 
-    company = Vnstock().stock(symbol="VCB", source="TCBS").company
+    company = Vnstock().stock(symbol=stock, source="TCBS").company
     st.dataframe(company.profile().T, use_container_width=True, height=300)
 
     col_1, col_2 = st.columns(2)
