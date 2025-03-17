@@ -51,7 +51,7 @@ def plot_price_chart(df):
         st.write("No data available:", e)
 
 
-def plot_cashflow_analysis(stock, period):
+def plot_cashflow_analysis(df_price,stock, period):
     st.write(
         """
         | Loại Nhà Đầu Tư   | Đặc Điểm Chính | Chủ Thể |
@@ -81,7 +81,9 @@ def plot_cashflow_analysis(stock, period):
     buy_columns = ["Shark buy", "Wolf buy", "Sheep buy"]
     sell_columns = ["Shark sell", "Wolf sell", "Sheep sell"]
     df_stacked = df[["date"] + buy_columns + sell_columns]
-
+    df_stacked["date"] = pd.to_datetime(df_stacked["date"])
+    
+    df_stacked = df_stacked.merge(df_price[["time", "close"]], left_on="date", right_on="time", how="left")
     fig = go.Figure()
 
     buy_colors = ["green", "lightgreen", "yellowgreen"]
@@ -96,13 +98,29 @@ def plot_cashflow_analysis(stock, period):
         fig.add_trace(
             go.Bar(x=df_stacked["date"], y=df_stacked[col], name=col, marker_color=color)
         )
-
+        
+    fig.add_trace(
+        go.Scatter(x=df_stacked["date"], y=df_stacked["close"], name="Close Price", yaxis="y2")
+    )
+    
     fig.update_layout(
         barmode="stack",
         title="Phân Tích Mua Bán Chủ Động",
         xaxis_title="",
         yaxis_title="",
         legend_title="Order Type",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.2,
+            xanchor="center",
+            x=0.5
+        ),
+        yaxis2=dict(
+            title="Close Price",
+            overlaying="y",
+            side="right"
+        )
     )
 
     st.plotly_chart(fig, use_container_width=True)
@@ -184,6 +202,7 @@ def fetch_and_plot_ownership(symbol):
         path=["Parent", "Investor Type"],
         values="Percentage",
         color="Parent",
+        color_discrete_sequence=px.colors.qualitative.Set1,
     )
 
     fig.update_traces(textinfo="label+percent entry", insidetextorientation="radial")

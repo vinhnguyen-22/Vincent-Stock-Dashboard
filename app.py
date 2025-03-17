@@ -81,19 +81,26 @@ def get_sidebar_inputs():
 
 def display_cashflow_analysis(stock, df_price, start_date, end_date):
     st.title(f"Phân tích dòng tiền cổ phiếu {stock}")
-    plot_cashflow_analysis(stock, (end_date - start_date).days)
-    plot_price_chart(df_price)
+    plot_cashflow_analysis(df_price, stock, (end_date - start_date).days)
 
 
-def display_portfolio_analysis(stocks):
-    st.title("Phân Bổ Tỷ Trọng Danh Mục")
-    if stocks:
+def display_portfolio_analysis():
+    st.title("Phân Bổ Tỷ Trọng Danh Mục Đầu Tư")
+    
+    stocks = st_tags(
+                label="Nhập mã chứng khoán ở đây",
+                text="Press enter to add more",
+                value=[],
+                suggestions=["ACB", "FPT", "MBB", "HPG"],
+                maxtags=5,
+                key="aljnf",
+            )
+    
+    
+    if stocks and st.button("Kết Quả"):
         price = get_port_price(stocks, "2015-01-01", "2025-01-01")
         port = get_port(price=price)
         st.dataframe(port, use_container_width=True)
-    if st.button("Tối Ưu"):
-        price = get_port_price(stocks, "2015-01-01", "2025-01-01")
-        port = get_port(price=price)
         optimal_portfolio = calculate_optimal_portfolio(stocks, price, port)
         st.dataframe(optimal_portfolio, use_container_width=True)
         plot_optimal_portfolio_chart(optimal_portfolio)
@@ -103,17 +110,16 @@ def display_trading_analysis(stock, df_price, start_date, end_date):
     st.title(f"PHÂN TÍCH GIAO DỊCH CỔ PHIẾU {stock}")
     st.subheader("Thông Tin Cổ Phiếu")
 
+    company = Vnstock().stock(symbol="VCB", source="TCBS").company
+    st.dataframe(company.profile().T, use_container_width=True, height=300)
+
     col_1, col_2 = st.columns(2)
     with col_1:
-        st.write("Thông Tin Cổ Phiếu")
-        company = Vnstock().stock(symbol="VCB", source="TCBS").company
-        st.dataframe(company.profile().T, use_container_width=True, height=300)
-    with col_2:
-        st.write("Cơ Cấu Cổ Đông")
+        st.subheader("Cơ Cấu Cổ Đông")
         fetch_and_plot_ownership(stock)
-
-    st.subheader("ĐỊNH GIÁ TỪ CÁC CÔNG TY CHỨNG KHOÁN")
-    plot_firm_pricing(stock, "2024-01-01")
+    with col_2:
+        st.subheader("ĐỊNH GIÁ TỪ CÁC CÔNG TY CHỨNG KHOÁN")
+        plot_firm_pricing(stock, "2024-01-01")
 
     st.subheader("GIAO DỊCH CỦA TỔ CHỨC VÀ NƯỚC NGOÀI")
     col_1, col_2 = st.columns(2)
@@ -144,15 +150,8 @@ def main():
             plot_pie_fund(df)
             pass
         elif page == "Phân Bổ Danh Mục":
-            stocks = st_tags(
-                label="Nhập mã chứng khoán ở đây",
-                text="Press enter to add more",
-                value=[],
-                suggestions=["ACB", "FPT", "MBB", "HPG"],
-                maxtags=5,
-                key="aljnf",
-            )
-            display_portfolio_analysis(stocks)
+            
+            display_portfolio_analysis()
         else:
             display_trading_analysis(stock, df_price, start_date, end_date)
             # st.subheader("Nhận định từ DeepSeek")

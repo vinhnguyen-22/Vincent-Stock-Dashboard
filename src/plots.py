@@ -106,33 +106,28 @@ def foreign_impact_stock(stock, start, end):
 def plot_firm_pricing(symbol, start_date):
     try:
         df = get_firm_pricing(symbol, start_date)
-        col_1, col_2 = st.columns(2)
-        with col_1:
-            st.write("Danh Sách Báo Cáo Định Gía")
-            st.dataframe(df)
-        with col_2:
-            fig = px.scatter(
-                df,
-                x="reportDate",
-                y="targetPrice",
-                color="firm",
-                title=f"Định giá từ các công ty chứng khoán với cổ phiếu {symbol}",
-                labels={
-                    "reportDate": "Ngày báo cáo",
-                    "targetPrice": "Giá mục tiêu",
-                    "firm": "Công ty chứng khoán",
-                },
-                text=df.apply(lambda row: f"{row['firm']} - {row['targetPrice']}", axis=1),
-            )
-            fig.update_traces(
-                textposition="top center",
-            )
-            fig.update_layout(showlegend=False)
+        fig = px.scatter(
+            df,
+            x="reportDate",
+            y="targetPrice",
+            color="firm",
+            title=f"Định giá từ các công ty chứng khoán với cổ phiếu {symbol}",
+            labels={
+                "reportDate": "Ngày báo cáo",
+                "targetPrice": "Giá mục tiêu",
+                "firm": "Công ty chứng khoán",
+            },
+            text=df.apply(lambda row: f"{row['firm']} - {row['targetPrice']}", axis=1),
+        )
+        fig.update_traces(
+            textposition="top center",
+        )
+        fig.update_layout(showlegend=False)
 
-            st.plotly_chart(
-                fig,
-                use_container_width=True,
-            )
+        st.plotly_chart(
+            fig,
+            use_container_width=True,
+        )
     except:
         st.write("Không có dữ liệu")
 
