@@ -43,7 +43,7 @@ def get_port(price, N=252):
     return result
 
 
-def calculate_optimal_portfolio(symbols, price, port, no_of_port=1000, risk_free_rate=0.0267):
+def calculate_optimal_portfolio(symbols, price, port, no_of_port=1000, risk_free_rate=0.05,nav = 100.00):
     num_stocks = len(symbols)
     weight = np.zeros((no_of_port, num_stocks))
     expected_ret = np.zeros(no_of_port)
@@ -68,12 +68,14 @@ def calculate_optimal_portfolio(symbols, price, port, no_of_port=1000, risk_free
 
     optimal_portfolio = pd.DataFrame(
         {
-            "Mã cổ phiếu": symbols,
-            "Tối Ưu": weight[max_sharpe_index, :].round(decimals=2) * 100,
-            "Tấn Công": weight[max_return_index, :].round(decimals=2) * 100,
-            "Phòng Thủ": weight[min_risk_index, :].round(decimals=2) * 100,
+            "Stock": symbols,
+            "Tối Ưu": weight[max_sharpe_index, :].round(decimals=2)*nav ,
+            "Tấn Công": weight[max_return_index, :].round(decimals=2)*nav,
+            "Phòng Thủ": weight[min_risk_index, :].round(decimals=2)*nav ,
         }
     )
+    
+    optimal_portfolio.set_index("Stock",inplace=True)
 
     return optimal_portfolio
 
@@ -81,17 +83,15 @@ def calculate_optimal_portfolio(symbols, price, port, no_of_port=1000, risk_free
 def plot_optimal_portfolio_chart(optimal_portfolio):
     # Định dạng lại dữ liệu
     categories = ["Tối Ưu", "Tấn Công", "Phòng Thủ"]
-    ma_co_phieu = optimal_portfolio["Mã cổ phiếu"].tolist()
+    optimal_portfolio.reset_index(inplace=True)
+    ma_co_phieu = optimal_portfolio["Stock"].tolist()
     data = optimal_portfolio[categories].values.T  # Chuyển ma trận để lấy danh mục làm trục x
 
-    # Tính tỷ trọng theo từng danh mục
     total_values = np.sum(data, axis=1, keepdims=True)
     ratios = (data / total_values) * 100  # Chuyển đổi sang tỷ lệ %
 
-    # Tạo biểu đồ với Plotly
     fig = go.Figure()
 
-    # Duyệt qua từng mã cổ phiếu để thêm vào biểu đồ
     for idx, ma in enumerate(ma_co_phieu):
         fig.add_trace(
             go.Bar(
@@ -103,14 +103,13 @@ def plot_optimal_portfolio_chart(optimal_portfolio):
             )
         )
 
-    # Cấu hình biểu đồ
     fig.update_layout(
         barmode="stack",
         title="Biểu đồ cột chồng theo danh mục với tỷ trọng từng mã cổ phiếu",
         xaxis_title="Danh mục",
         yaxis_title="Tỷ trọng (%)",
         yaxis=dict(range=[0, 100]),
-        legend_title="Mã cổ phiếu",
+        legend_title="Stock",
     )
 
     # Hiển thị với Streamlit

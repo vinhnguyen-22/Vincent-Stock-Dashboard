@@ -100,9 +100,8 @@ def plot_cashflow_analysis(df_price,stock, period):
         )
         
     fig.add_trace(
-        go.Scatter(x=df_stacked["date"], y=df_stacked["close"], name="Close Price", yaxis="y2")
+        go.Scatter(x=df_stacked["date"], y=df_stacked["close"], name="Close Price", yaxis="y2", line=dict(color='blue'))
     )
-    
     fig.update_layout(
         barmode="stack",
         title="Phân Tích Mua Bán Chủ Động",

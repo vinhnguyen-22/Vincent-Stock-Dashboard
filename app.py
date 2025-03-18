@@ -65,12 +65,14 @@ def get_sidebar_inputs():
         start_date = st.date_input("Chọn ngày bắt đầu", datetime(2025, 1, 1))
         end_option = st.checkbox("Nhập ngày kết thúc")
         if page != "Tổng Quan Thị Trường" and not end_option:
-            time_range = st.selectbox("Chọn khoảng thời gian", ["Tuần", "Tháng", "Năm"], index=1)
+            time_range = st.selectbox("Chọn khoảng thời gian", ["Tuần", "Tháng","Qúy", "Năm"], index=1)
             end_date = datetime.today()
             if time_range == "Tuần":
                 start_date = end_date - timedelta(weeks=1)
             elif time_range == "Tháng":
                 start_date = end_date - timedelta(days=30)
+            elif time_range == "Qúy":
+                start_date = end_date - timedelta(days=90)
             elif time_range == "Năm":
                 start_date = end_date - timedelta(days=365)
         else:
@@ -86,7 +88,16 @@ def display_cashflow_analysis(stock, df_price, start_date, end_date):
 
 def display_portfolio_analysis():
     st.title("Phân Bổ Tỷ Trọng Danh Mục Đầu Tư")
+    df_portfolio = pd.DataFrame({
+        "Danh mục": ["Tối Ưu", "Tấn Công", "Phòng Thủ"],
+        "Mô tả": [
+            "Danh mục tối ưu hóa lợi nhuận và rủi ro",
+            "Danh mục tập trung vào lợi nhuận cao",
+            "Danh mục tập trung vào rủi ro thấp"
+        ]
+    })
     
+    st.dataframe(df_portfolio.set_index("Danh mục"), use_container_width=True)
     stocks = st_tags(
                 label="Nhập mã chứng khoán ở đây",
                 text="Press enter to add more",
@@ -95,13 +106,18 @@ def display_portfolio_analysis():
                 maxtags=5,
                 key="aljnf",
             )
-    
+    nav = st.text_input("Nhập NAV", value=100000000.00, max_chars=20)
+    try:
+        nav = float(nav)
+        st.write("{:,.2f}".format(nav))
+    except ValueError:
+        st.error("Vui lòng nhập một số hợp lệ cho NAV")
     
     if stocks and st.button("Kết Quả"):
         price = get_port_price(stocks, "2015-01-01", "2025-01-01")
         port = get_port(price=price)
         st.dataframe(port, use_container_width=True)
-        optimal_portfolio = calculate_optimal_portfolio(stocks, price, port)
+        optimal_portfolio = calculate_optimal_portfolio(stocks, price, port,nav=nav)
         st.dataframe(optimal_portfolio, use_container_width=True)
         plot_optimal_portfolio_chart(optimal_portfolio)
 
