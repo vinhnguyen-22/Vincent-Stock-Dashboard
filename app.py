@@ -14,6 +14,7 @@ from src.features import (
     plot_pie_fund,
     plot_price_chart,
 )
+from src.llm_model import analysis_with_ai
 from src.optimize_portfolio import (
     calculate_optimal_portfolio,
     get_port,
@@ -124,7 +125,7 @@ def display_portfolio_analysis():
 
 def display_trading_analysis(stock, df_price, start_date, end_date):
     st.title(f"PHÂN TÍCH GIAO DỊCH CỔ PHIẾU {stock}")
-    st.subheader("Thông Tin Cổ Phiếu")
+    st.subheader("THÔNG TIN CỔ PHIẾU")
 
     company = Vnstock().stock(symbol=stock, source="TCBS").company
     st.dataframe(company.profile().T, use_container_width=True, height=300)
@@ -159,6 +160,7 @@ def main():
         df_price = get_stock_price(
             stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
         )
+     
         if page == "Phân Tích Dòng Tiền":
             display_cashflow_analysis(stock, df_price, start_date, end_date)
         elif page == "Tổng Quan Thị Trường":

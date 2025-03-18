@@ -6,6 +6,8 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 
+from src.llm_model import analysis_with_ai
+
 HEADERS = {
     "Upgrade-Insecure-Requests": "1",
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0",
@@ -123,6 +125,8 @@ def plot_cashflow_analysis(df_price,stock, period):
     )
 
     st.plotly_chart(fig, use_container_width=True)
+    res = analysis_with_ai(df_stacked,f"Dưới đây là dữ liệu giá và giao dịch chủ động của cổ phiếu {stock} hãy phân tích dữ liệu này")
+    st.write(res)   
 
 
 def get_fund_data(start_date):

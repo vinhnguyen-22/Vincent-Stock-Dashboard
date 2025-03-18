@@ -21,3 +21,4 @@ streamlit_tags
 google
 langchain-core
 langchain_ollama
+google-genai
