@@ -106,13 +106,7 @@ def foreign_impact_stock(stock, start, end):
 def plot_firm_pricing(symbol, start_date):
     try:
         df = get_firm_pricing(symbol, start_date)
-        fig = px.scatter(
-            df,
-            x="reportDate",
-            y="targetPrice",
-            color="firm",
-            title=f"Định giá từ các công ty chứng khoán với cổ phiếu {symbol}",
-            labels={
+        fig = px.scatter(df, x="reportDate", y="targetPrice", color="firm", title=f"Định giá từ các công ty chứng khoán với cổ phiếu {symbol}", labels={
                 "reportDate": "Ngày báo cáo",
                 "targetPrice": "Giá mục tiêu",
                 "firm": "Công ty chứng khoán",
