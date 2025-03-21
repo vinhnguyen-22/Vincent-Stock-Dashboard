@@ -1,19 +1,21 @@
 from math import sqrt
 from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+from pyparsing import col
 import streamlit as st
 from vnstock import Vnstock
-
 from src.config import PROCESSED_DATA_DIR
-
+from math import sqrt
+import pandas as pd
+from regex import D
+import streamlit as st
+from streamlit_tags import st_tags
+from vnstock import Vnstock
 
 def get_port_price(symbols, start_date, end_date):
-
     result = pd.DataFrame()
-
     for s in symbols:
         stock = Vnstock().stock(symbol=s, source="TCBS")
         df = stock.quote.history(start=start_date, end=end_date, interval="1D")
@@ -25,11 +27,9 @@ def get_port_price(symbols, start_date, end_date):
 
 
 def get_port(price, N=252):
-
     port_ret = np.log(price / price.shift(1))
     port_annual_risk = np.sqrt(port_ret.std() * sqrt(N))
     port_annual_ret = ((1 + port_ret.mean()) ** N) - 1
-
     sharpe_ratio = port_annual_ret / port_annual_risk
     result = pd.DataFrame(
         {
@@ -41,7 +41,6 @@ def get_port(price, N=252):
         }
     )
     return result
-
 
 def calculate_optimal_portfolio(symbols, price, port, no_of_port=1000, risk_free_rate=0.05,nav = 100.00):
     num_stocks = len(symbols)
@@ -81,14 +80,12 @@ def calculate_optimal_portfolio(symbols, price, port, no_of_port=1000, risk_free
 
 
 def plot_optimal_portfolio_chart(optimal_portfolio):
-    # Định dạng lại dữ liệu
     categories = ["Tối Ưu", "Tấn Công", "Phòng Thủ"]
     optimal_portfolio.reset_index(inplace=True)
     ma_co_phieu = optimal_portfolio["Stock"].tolist()
-    data = optimal_portfolio[categories].values.T  # Chuyển ma trận để lấy danh mục làm trục x
-
+    data = optimal_portfolio[categories].values.T  
     total_values = np.sum(data, axis=1, keepdims=True)
-    ratios = (data / total_values) * 100  # Chuyển đổi sang tỷ lệ %
+    ratios = (data / total_values) * 100  
 
     fig = go.Figure()
 
@@ -102,7 +99,6 @@ def plot_optimal_portfolio_chart(optimal_portfolio):
                 textposition="inside",
             )
         )
-
     fig.update_layout(
         barmode="stack",
         title="Biểu đồ cột chồng theo danh mục với tỷ trọng từng mã cổ phiếu",
@@ -111,17 +107,47 @@ def plot_optimal_portfolio_chart(optimal_portfolio):
         yaxis=dict(range=[0, 100]),
         legend_title="Stock",
     )
-
-    # Hiển thị với Streamlit
     st.plotly_chart(fig)
 
+def display_portfolio_analysis():
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        stocks = st_tags(
+            label="Nhập mã chứng khoán ở đây",
+            text="Press enter to add more",
+            value=[],
+            suggestions=["ACB", "FPT", "MBB", "HPG"],
+            maxtags=5,
+            key="aljnf",
+        )
+        nav = st.text_input("Nhập NAV", value=100000000.00, max_chars=20)
+        try:
+            nav = float(nav)
+            st.write("{:,.2f}".format(nav))
+        except ValueError:
+            st.error("Vui lòng nhập một số hợp lệ cho NAV")
+            
+    if stocks and st.button("Kết Quả"):
+        price = get_port_price(stocks, "2015-01-01", "2025-01-01")
+        port = get_port(price=price)
+        st.dataframe(port, use_container_width=True)
+        optimal_portfolio = calculate_optimal_portfolio(stocks, price, port, nav=nav)
+        st.dataframe(optimal_portfolio, use_container_width=True)
+        plot_optimal_portfolio_chart(optimal_portfolio)
+        
+    with col2:
+        df_portfolio = pd.DataFrame({
+            "Danh mục": ["Tối Ưu", "Tấn Công", "Phòng Thủ"],
+            "Mô tả": [
+                "Danh mục tối ưu hóa lợi nhuận và rủi ro",
+                "Danh mục tập trung vào lợi nhuận cao",
+                "Danh mục tập trung vào rủi ro thấp"
+            ]
+        })
+        st.dataframe(df_portfolio.set_index("Danh mục"), use_container_width=True)
 
-def main(
-    input_path: Path = PROCESSED_DATA_DIR / "dataset.csv",
-    output_path: Path = PROCESSED_DATA_DIR / "features.csv",
-    # -----------------------------------------
-):
 
+def main():
     pass
 
 

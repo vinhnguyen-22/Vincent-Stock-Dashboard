@@ -1,19 +1,9 @@
-from pathlib import Path
-
-import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import requests
 import streamlit as st
-from altair import Legend
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_ollama.llms import OllamaLLM
-from pyparsing import col
-from tqdm import tqdm
 from vnstock import Vnstock
-
-from src.config import FIGURES_DIR, PROCESSED_DATA_DIR
 
 cookies = {
     "vnds-uuid": "4408bacf-3ab6-44f4-a8bf-e1f775a4cfd1",
@@ -89,24 +79,9 @@ def proprietary_trading_stock(stock, start, end):
         return None
 
 
-def foreign_impact_stock(stock, start, end):
-    api_url = f"https://api-finfo.vndirect.com.vn/v4/proprietary_trading?q=code:{stock}~date:lte:{end}~date:gte:{start}&sort=date:desc&size=20"
+def plot_firm_pricing(df):
     try:
-        res = requests.get(url=api_url, headers=headers)
-        res.raise_for_status()
-        data = res.json()
-        df = pd.DataFrame(data["data"])
-        df.rename(columns={"date": "time"}, inplace=True)
-        return df
-    except requests.exceptions.RequestException as e:
-        print("Yêu cầu không thành công:", e)
-        return None
-
-
-def plot_firm_pricing(symbol, start_date):
-    try:
-        df = get_firm_pricing(symbol, start_date)
-        fig = px.scatter(df, x="reportDate", y="targetPrice", color="firm", title=f"Định giá từ các công ty chứng khoán với cổ phiếu {symbol}", labels={
+        fig = px.scatter(df, x="reportDate", y="targetPrice", color="firm", labels={
                 "reportDate": "Ngày báo cáo",
                 "targetPrice": "Giá mục tiêu",
                 "firm": "Công ty chứng khoán",
@@ -202,8 +177,6 @@ def plot_proprietary_trading(stock, start_date, end_date):
 
 
 def get_stock_data_with_ratio(df_price, symbol, start_date, end_date):
-    # stock = Vnstock().stock(symbol=symbol, source="TCBS")
-    # df = stock.quote.history(start=start_date, end=end_date, interval="1D")
     foreign = foreigner_trading_stock(symbol, start=start_date, end=end_date)
     foreign["time"] = pd.to_datetime(foreign["time"])
     merged_df = pd.merge(df_price, foreign, on="time", how="right")
@@ -222,7 +195,6 @@ def get_stock_price(symbol, start_date, end_date):
     df["time"] = pd.to_datetime(df["time"])
     return df
 
-
 def plot_close_price_and_ratio(df_price, symbol, start_date, end_date):
     try:
 
@@ -232,7 +204,11 @@ def plot_close_price_and_ratio(df_price, symbol, start_date, end_date):
 
         # Add the close price trace
         fig.add_trace(
-            go.Scatter(x=result["time"], y=result["close"], mode="lines", name="Close Price")
+            go.Scatter(x=result["time"], y=result["close"], mode="lines+markers", name="Close Price",
+                        marker=dict(
+                            size=6,
+                            symbol="cross"))
+            
         )
 
         # Add the ratio trace
@@ -240,9 +216,13 @@ def plot_close_price_and_ratio(df_price, symbol, start_date, end_date):
             go.Scatter(
                 x=result["time"],
                 y=round(result["ratio"] * 100, 2),
-                mode="lines",
-                name="Ratio (%)",
+                mode="lines+markers",
+                name="Ratio (%)", 
                 yaxis="y2",
+                marker=dict(
+                    size=6,
+                    symbol="circle"
+                )
             )
         )
 
@@ -262,10 +242,7 @@ def plot_close_price_and_ratio(df_price, symbol, start_date, end_date):
         st.write("Không có dữ liệu")
 
 
-def main(
-    input_path: Path = PROCESSED_DATA_DIR / "dataset.csv",
-    output_path: Path = FIGURES_DIR / "plot.png",
-):
+def main():
     pass
 
 
