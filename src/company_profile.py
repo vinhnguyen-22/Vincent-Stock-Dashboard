@@ -9,7 +9,11 @@ from vnstock import Vnstock
 import pandas as pd
 from scipy.stats import norm
 import numpy as np
-def calculate_quant_metrics(df_price, df_index, df_pricing):
+
+from src.plots import get_stock_price
+def calculate_quant_metrics(stock, end_date):
+    df_price = get_stock_price(stock, "2015-01-01", end_date.strftime("%Y-%m-%d"))
+    df_index = get_stock_price("VNINDEX", "2015-01-01", end_date.strftime("%Y-%m-%d"))
     rf = 0.0267
     df_data = df_price.merge(df_index[['time', 'close']].rename(columns={'close': 'close_index'}), on='time', how='inner')
     df_data.set_index('time', inplace=True)
@@ -23,10 +27,8 @@ def calculate_quant_metrics(df_price, df_index, df_pricing):
     sharpe_ratio = (annual_return - rf) / annual_std if annual_std != 0 else 0
     beta = ret_stock.cov(ret_index) / ret_index.var()
     beta_adj = 0.67 * beta + 0.33 * 1
-    target_price = round(df_pricing[pd.to_datetime(df_pricing['reportDate']).dt.year == 2025]['targetPrice'].mean(), 2)
+   
     current_price = df_data.iloc[-1]["close"]
-    safety_margin = ((target_price -current_price)/target_price)
-    recommendation = "Mua" if safety_margin > 0.3 else "Nắm giữ" if safety_margin > 0 else "Bán"
     peak = df_data["close"].cummax()
     drawdown = (df_data["close"] - peak) / peak * 100
     max_drawdown = drawdown.min()
@@ -38,10 +40,7 @@ def calculate_quant_metrics(df_price, df_index, df_pricing):
 
     metrics = pd.DataFrame({
         "Thông Số": [
-            "Định giá", 
             "Giá hiện tại",
-            "Khuyến nghị",
-            "Biên an toàn",
             "Tỷ xuất sinh lời hàng năm", 
             "Tăng trưởng kép hàng năm",
             "Độ biến động hàng năm",
@@ -52,10 +51,7 @@ def calculate_quant_metrics(df_price, df_index, df_pricing):
             "VaR" 
         ],
         "Giá Trị": [
-            f"{int(target_price*1000):,} VND",
             f"{int(current_price*1000):,} VND",
-            recommendation,
-            f"{safety_margin*100:.2f}%",
             f"{annual_return*100:.2f}%", 
             f"{cagr*100:.2f}%",
             f"{annual_std*100:.2f}%",
@@ -64,6 +60,30 @@ def calculate_quant_metrics(df_price, df_index, df_pricing):
             f"{beta_adj:.2f}",
             f"{max_drawdown:.2f}%",
             f"{VaR:.2f}%"
+        ]
+    })
+    
+    return metrics
+
+def calculate_stock_metrics(df_price, df_index, df_pricing):
+    df_price.set_index('time', inplace=True)
+    target_price = round(df_pricing[pd.to_datetime(df_pricing['reportDate']).dt.year == 2025]['targetPrice'].mean(), 2)
+    current_price = df_price.iloc[-1]["close"]
+    safety_margin = ((target_price -current_price)/target_price)
+    recommendation = "Mua" if safety_margin > 0.3 else "Nắm giữ" if safety_margin > 0 else "Bán"
+    metrics = pd.DataFrame({
+        "Thông Số": [
+            "Định giá", 
+            "Giá hiện tại",
+            "Khuyến nghị",
+            "Biên an toàn",
+        ],
+        "Giá Trị": [
+            f"{int(target_price*1000):,} VND",
+            f"{int(current_price*1000):,} VND",
+            recommendation,
+            f"{safety_margin*100:.2f}%",
+            
         ]
     })
     

@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 from vnstock import Vnstock
-from src.company_profile import calculate_quant_metrics
+from src.company_profile import calculate_quant_metrics,calculate_stock_metrics
 from src.features import (
     fetch_and_plot_ownership,
     get_fund_data,
@@ -49,6 +49,7 @@ def get_sidebar_inputs():
             "",
             [
                 "📈 Phân Tích Cổ Phiếu",
+                "🎲 Phân Tích Định Lượng",
                 "🌍 Tổng Quan Thị Trường",
                 "🔍 Bộ Lọc Cổ Phiếu",
                 "💰 Phân Tích Dòng Tiền",
@@ -99,8 +100,8 @@ def display_trading_analysis(stock, df_price,df_index, start_date, end_date):
         st.dataframe(profile.T, use_container_width=True, )
     with col_2:
         st.subheader("THÔNG TIN ĐỊNH LƯỢNG")
-        quantitative = calculate_quant_metrics(df_price, df_index, df_pricing)
-        st.dataframe(quantitative.set_index("Thông Số"), use_container_width=True)
+        stock_profile = calculate_stock_metrics(df_price, df_index, df_pricing)
+        st.dataframe(stock_profile.set_index("Thông Số"), use_container_width=True)
     st.divider()
     col_1, col_2 = st.columns(2)
     with col_1:
@@ -137,13 +138,15 @@ def main():
     st.title(f"{page}")
     
     if stock:
-        df_price = get_stock_price(stock, "2014-01-01", end_date.strftime("%Y-%m-%d"))
-        df_index = get_stock_price("VNINDEX", "2014-01-01", end_date.strftime("%Y-%m-%d"))
+        df_price = get_stock_price(stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
+        df_index = get_stock_price("VNINDEX", start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
         if page == "💰 Phân Tích Dòng Tiền":
             display_cashflow_analysis(stock, df_price, period)
         elif page == "🌍 Tổng Quan Thị Trường":
             display_overview_market()
-
+        elif page == "🎲 Phân Tích Định Lượng":
+            quant_metric = calculate_quant_metrics(stock,end_date)
+            st.write(quant_metric)
         elif page == "🗂 Phân Bổ Danh Mục":
             display_portfolio_analysis()
         elif page == "🔍 Bộ Lọc Cổ Phiếu":
