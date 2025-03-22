@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 from google import genai
-
+import streamlit as st
 # Khởi tạo đối tượng GeminiAI với API key của bạn
 load_dotenv()
 client  = genai.Client(api_key="AIzaSyBhF19t-zPPynyL8DHSgno-ZXQdg2MPj0k")
@@ -15,8 +15,9 @@ generation_config = {
 
 
 def analysis_with_ai(df, prompt):
-    prompt=f"Đóng vai trò là một chuyên viên phân tích tài chính. Tôi sẽ cung cấp bảng dữ liệu dưới dạng bảng Markdown. Hãy đọc, xử lý và phân tích dữ liệu đó, cung cấp các nhận định về tình hình tài chính hoặc xu hướng dựa trên số liệu trong bảng trả lời dưới dạng bảng markdown. {prompt}.Dữ liệu chi tiết:  {df.to_string()} "
-    res = client.models.generate_content(
-        model="gemini-2.0-flash", contents=prompt
-    )
-    return res.text
+    if st.button("Phân tích dữ liệu với AI"):
+      prompt=f"Đóng vai trò là một chuyên viên phân tích tài chính. Tôi sẽ cung cấp bảng dữ liệu dưới dạng bảng Markdown. Hãy đọc, xử lý và phân tích dữ liệu đó, cung cấp các nhận định về tình hình tài chính hoặc xu hướng dựa trên số liệu trong bảng trả lời dưới dạng bảng markdown. {prompt}.Dữ liệu chi tiết:  {df.to_string()} "
+      res = client.models.generate_content(
+          model="gemini-2.0-flash", contents=prompt
+      )
+      return res.text

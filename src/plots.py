@@ -189,9 +189,9 @@ def get_stock_data_with_ratio(df_price, symbol, start_date, end_date):
     return result_df
 
 
-def get_stock_price(symbol, start_date, end_date):
+def get_stock_price(symbol, start_date, end_date, interval="1D"):
     stock = Vnstock().stock(symbol=symbol, source="TCBS")
-    df = stock.quote.history(start=start_date, end=end_date, interval="1D")
+    df = stock.quote.history(start=start_date, end=end_date, interval=interval)
     df["time"] = pd.to_datetime(df["time"])
     return df
 
