@@ -91,6 +91,7 @@ def display_cashflow_analysis(stock, df_price, period):
 def display_trading_analysis(stock, df_price,df_index, start_date, end_date):
     """Display trading analysis for the selected stock."""
     df_pricing = get_firm_pricing(stock, '2024-01-01')
+    
     col_1, col_2 = st.columns(2)
     with col_1:
         st.subheader("THÔNG TIN CỔ PHIẾU")
@@ -99,9 +100,8 @@ def display_trading_analysis(stock, df_price,df_index, start_date, end_date):
         profile.set_index("company_name", inplace=True)
         st.dataframe(profile.T, use_container_width=True, )
     with col_2:
-        st.subheader("THÔNG TIN ĐỊNH LƯỢNG")
-        stock_profile = calculate_stock_metrics(df_price, df_index, df_pricing)
-        st.dataframe(stock_profile.set_index("Thông Số"), use_container_width=True)
+        st.subheader("ĐỊNH GIÁ CỔ PHIẾU")
+        calculate_stock_metrics(df_price, df_index, df_pricing)
     st.divider()
     col_1, col_2 = st.columns(2)
     with col_1:

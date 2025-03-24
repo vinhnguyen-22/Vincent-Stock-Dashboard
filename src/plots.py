@@ -44,10 +44,9 @@ def get_firm_pricing(symbol, start_date):
         res = requests.get(url=api_url, headers=headers, cookies=cookies)
         res.raise_for_status()
         data = res.json()
-
         return pd.DataFrame(data["data"])
     except requests.exceptions.RequestException as e:
-        st.write("Yêu cầu không thành công:", e)
+        st.write("Yêu cầu không thành công:")
         return None
 
 
@@ -61,7 +60,7 @@ def foreigner_trading_stock(stock, start, end):
         df.rename(columns={"tradingDate": "time"}, inplace=True)
         return df
     except requests.exceptions.RequestException as e:
-        st.write("Yêu cầu không thành công:", e)
+        st.write("Yêu cầu không thành công:")
         return None
 
 
@@ -75,7 +74,7 @@ def proprietary_trading_stock(stock, start, end):
         df.rename(columns={"date": "time"}, inplace=True)
         return df
     except requests.exceptions.RequestException as e:
-        st.write("Yêu cầu không thành công:", e)
+        st.write("Yêu cầu không thành công:")
         return None
 
 

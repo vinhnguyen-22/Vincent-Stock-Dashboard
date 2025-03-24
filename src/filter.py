@@ -61,7 +61,9 @@ def filter_stocks(end,market_cap=50, net_bought_val=1):
         rs = round((total - curr) / total, 6) * 100
         stocks[symbol] = rs
     stocks.sort_index(axis=0, ascending=False, inplace=True)
-    # stocks = round(stocks.pct_change() *100,1)
+    use_pct_change = st.radio("Tốc độ tăng trưởng tỷ lệ sở hữu", [False, True], index=0)
+    if use_pct_change:
+        stocks = round(stocks.pct_change() * 100, 1)
     stocks_sorted = stocks.loc[:, stocks.iloc[-1].sort_values(ascending=False).index].T
     stocks_sorted.index.name = "Code"
     value_columns  = stocks_sorted.columns

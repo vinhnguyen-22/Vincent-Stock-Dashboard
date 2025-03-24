@@ -84,31 +84,34 @@ def calculate_stock_metrics(df_price, df_index, df_pricing):
     # Constants
     TARGET_YEAR = 2025
     SAFETY_MARGIN_THRESHOLD = 0.3
-    
-    # Data preparation
-    df_price.set_index('time', inplace=True)
-    
-    # Calculate target and current prices
-    target_price = round(df_pricing[pd.to_datetime(df_pricing['reportDate']).dt.year == TARGET_YEAR]['targetPrice'].mean(), 2)
-    current_price = df_price.iloc[-1]["close"]
-    
-    # Calculate safety margin and recommendation
-    safety_margin = (target_price - current_price) / target_price
-    recommendation = (
-        "Mua" if safety_margin > SAFETY_MARGIN_THRESHOLD 
-        else "Nắm giữ" if safety_margin > 0 
-        else "Bán"
-    )
-    
-    # Create metrics dataframe
-    metrics = pd.DataFrame({
-        "Thông Số": ["Định giá", "Giá hiện tại", "Khuyến nghị", "Biên an toàn"],
-        "Giá Trị": [
-            f"{int(target_price*1000):,} VND",
-            f"{int(current_price*1000):,} VND",
-            recommendation,
-            f"{safety_margin*100:.2f}%"
-        ]
-    })
-    
-    return metrics
+        
+    try:
+        # Data preparation
+        df_price.set_index('time', inplace=True)
+        
+        # Calculate target and current prices
+        target_price = round(df_pricing[pd.to_datetime(df_pricing['reportDate']).dt.year == TARGET_YEAR]['targetPrice'].mean(), 2)
+        current_price = df_price.iloc[-1]["close"]
+        
+
+        # Calculate safety margin and recommendation
+        safety_margin = (target_price - current_price) / target_price
+        recommendation = (
+            "Mua" if safety_margin > SAFETY_MARGIN_THRESHOLD 
+            else "Nắm giữ" if safety_margin > 0 
+            else "Bán"
+        )
+        
+        # Create metrics dataframe
+        metrics = pd.DataFrame({
+            "Thông Số": ["Định giá", "Giá hiện tại", "Khuyến nghị", "Biên an toàn"],
+            "Giá Trị": [
+                f"{int(target_price*1000):,} VND",
+                f"{int(current_price*1000):,} VND",
+                recommendation,
+                f"{safety_margin*100:.2f}%"
+            ]
+        })
+        return st.dataframe(metrics.set_index("Thông Số"), use_container_width=True)
+    except:
+        return st.write("Không có dữ liệu")
