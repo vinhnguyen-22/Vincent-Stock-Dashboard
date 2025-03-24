@@ -47,7 +47,7 @@ def get_firm_pricing(symbol, start_date):
 
         return pd.DataFrame(data["data"])
     except requests.exceptions.RequestException as e:
-        print("Yêu cầu không thành công:", e)
+        st.write("Yêu cầu không thành công:", e)
         return None
 
 
@@ -61,7 +61,7 @@ def foreigner_trading_stock(stock, start, end):
         df.rename(columns={"tradingDate": "time"}, inplace=True)
         return df
     except requests.exceptions.RequestException as e:
-        print("Yêu cầu không thành công:", e)
+        st.write("Yêu cầu không thành công:", e)
         return None
 
 
@@ -75,7 +75,7 @@ def proprietary_trading_stock(stock, start, end):
         df.rename(columns={"date": "time"}, inplace=True)
         return df
     except requests.exceptions.RequestException as e:
-        print("Yêu cầu không thành công:", e)
+        st.write("Yêu cầu không thành công:", e)
         return None
 
 
