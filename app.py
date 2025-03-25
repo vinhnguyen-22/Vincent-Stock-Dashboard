@@ -129,7 +129,30 @@ def display_overview_market():
     start = st.date_input("Chọn ngày: ", datetime(2025, 1, 1))
     df = get_fund_data(start.strftime("%Y-%m-%d"))
     plot_pie_fund(df)
-
+    
+def display_quant_analysis(stock,end_date):
+    """Display market overview.""" 
+    quant_metric = calculate_quant_metrics(stock,end_date)
+    st.write(quant_metric)
+    
+def display_filter_stock(end_date):
+    """Display market overview.""" 
+    if st.button("Danh sách cổ phiếu có tỷ trọng sở hữu nước ngoài cao nhất"):
+        market_cap = st.slider("Vốn Hóa Thị Trường: ", min_value=1, max_value=500,value=1, step=10)
+        net_bought_val = st.slider("GTNN mua ròng 20 ngày: ", min_value=1, max_value=200,value=5)
+        filter =  filter_stocks(end_date, market_cap=market_cap, net_bought_val=net_bought_val)
+        st.data_editor(filter,
+            column_config={
+                "lines": st.column_config.LineChartColumn(
+                    "Trend",
+                    width="medium",
+                ),
+            },
+            use_container_width=True
+        )
+    
+    
+    
 def main():
     
     """Main function to run the Streamlit app."""
@@ -145,24 +168,11 @@ def main():
         elif page == "🌍 Tổng Quan Thị Trường":
             display_overview_market()
         elif page == "🎲 Phân Tích Định Lượng":
-            quant_metric = calculate_quant_metrics(stock,end_date)
-            st.write(quant_metric)
+            display_quant_analysis(stock,end_date)
         elif page == "🗂 Phân Bổ Danh Mục":
             display_portfolio_analysis()
         elif page == "🔍 Bộ Lọc Cổ Phiếu":
-            st.subheader("Danh sách cổ phiếu có tỷ trọng nước ngoài cao nhất")
-            market_cap = st.slider("Vốn Hóa Thị Trường: ", min_value=1, max_value=500,value=1, step=10)
-            net_bought_val = st.slider("GTNN mua ròng 20 ngày: ", min_value=1, max_value=200,value=5)
-            filter =  filter_stocks(end_date, market_cap=market_cap, net_bought_val=net_bought_val)
-            st.data_editor(filter,
-                column_config={
-                    "lines": st.column_config.LineChartColumn(
-                        "Trend",
-                        width="medium",
-                    ),
-                },
-                use_container_width=True
-            )
+            display_filter_stock(end_date)
         else:
             display_trading_analysis(stock, df_price, df_index, start_date, end_date)
             

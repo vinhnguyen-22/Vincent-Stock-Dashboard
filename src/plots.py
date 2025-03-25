@@ -216,7 +216,7 @@ def plot_close_price_and_ratio(df_price, symbol, start_date, end_date):
                 x=result["time"],
                 y=round(result["ratio"] * 100, 2),
                 mode="lines+markers",
-                name="Ratio (%)", 
+                name="Sở hữu nước ngoài (%)", 
                 yaxis="y2",
                 marker=dict(
                     size=6,
@@ -230,7 +230,7 @@ def plot_close_price_and_ratio(df_price, symbol, start_date, end_date):
             title_text=f"Tương quan giá và tỷ lệ sở hữu nước ngoài cổ phiếu {symbol}",
             xaxis_title="",
             yaxis_title="Giá trị giao dịch",
-            yaxis2=dict(title="Foreigner ownership", overlaying="y", side="right"),
+            yaxis2=dict(title="Tỷ lệ sở hữu nước ngoài", overlaying="y", side="right"),
             template="plotly_white",
             hovermode="x unified",
             margin=dict(l=40, r=40, t=40, b=40),
