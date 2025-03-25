@@ -3,7 +3,7 @@ from google import genai
 import streamlit as st
 # Khởi tạo đối tượng GeminiAI với API key của bạn
 load_dotenv()
-client  = genai.Client(api_key="AIzaSyBhF19t-zPPynyL8DHSgno-ZXQdg2MPj0k")
+client  = genai.Client(api_key="GOOGLE_API_KEY")
 
 generation_config = {
   "temperature": 1,
