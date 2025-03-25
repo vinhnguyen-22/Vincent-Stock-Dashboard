@@ -1,9 +1,11 @@
+import os
 from dotenv import load_dotenv
 from google import genai
 import streamlit as st
 # Khởi tạo đối tượng GeminiAI với API key của bạn
 load_dotenv()
-client  = genai.Client(api_key="GOOGLE_API_KEY")
+
+client  = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 generation_config = {
   "temperature": 1,
