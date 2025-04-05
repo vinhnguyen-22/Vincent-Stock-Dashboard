@@ -26,9 +26,7 @@ from src.plots import (
 
 
 
-def filter_stocks(end,market_cap=50, net_bought_val=1):
-    market_cap_min = market_cap*1000000000000
-    net_bought_val_avg_20d_min = net_bought_val *1000000000
+def get_stock_data_from_api(market_cap_min, net_bought_val_avg_20d_min):
     url = "https://screener-api.vndirect.com.vn/search_data"
     payload = {
         "fields": "code,companyNameVi,floor,priceCr,quarterReportDate,annualReportDate,marketCapCr,netForBoughtValAvgCr20d",
@@ -47,28 +45,54 @@ def filter_stocks(end,market_cap=50, net_bought_val=1):
     
     if response.status_code == 200:
         data = response.json()
-        df = pd.DataFrame(data["data"])
+        return pd.DataFrame(data["data"])
     else:
         return {"error": f"Request failed with status code {response.status_code}"}
 
-    symbols = df["code"]
-    start = end - timedelta(days=7)
-    stocks = pd.DataFrame()
-    for symbol in symbols:
-        foreign = foreigner_trading_stock(symbol, start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
-        curr = foreign["currentRoom"]
-        total = foreign["totalRoom"]
-        rs = round((total - curr) / total, 6) * 100
-        stocks[symbol] = rs
-    stocks.sort_index(axis=0, ascending=False, inplace=True)
-    pct_change = round(stocks.pct_change() * 100, 1)
-    use_pct_change = st.radio("Tốc độ tăng trưởng tỷ lệ sở hữu", [False, True], index=0)
-    if use_pct_change:
-        stocks = pct_change
-    stocks_sorted = stocks.loc[:, stocks.iloc[-1].sort_values(ascending=False).index].T
-    stocks_sorted.index.name = "Code"
-    value_columns  = stocks_sorted.columns
-    stocks_sorted['lines'] = stocks_sorted[value_columns].values.tolist()
+def filter_stocks(end, market_cap=50, net_bought_val=1):
+    if 'stocks_data' not in st.session_state:
+        st.session_state.stocks_data = None
+
+    stocks_sorted = None
+    if st.button("Danh sách cổ phiếu có tỷ trọng sở hữu nước ngoài cao nhất"):
+        market_cap_min = market_cap*1000000000000
+        net_bought_val_avg_20d_min = net_bought_val *1000000000
+        
+        df = get_stock_data_from_api(market_cap_min, net_bought_val_avg_20d_min)
+        if isinstance(df, dict) and "error" in df:
+            return df
+
+        symbols = df["code"]
+        start = end - timedelta(days=30)
+        stocks = pd.DataFrame()
+        
+        for symbol in symbols:
+            foreign = foreigner_trading_stock(symbol, start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
+            curr = foreign["currentRoom"]
+            total = foreign["totalRoom"]
+            rs = round((total - curr) / total, 6) * 100
+            stocks[symbol] = rs
+        stocks.sort_index(axis=0, ascending=False, inplace=True)
+        st.write(stocks)
+        st.session_state.stocks_data = stocks
+
+    if st.session_state.stocks_data is not None:
+        use_pct_change = st.checkbox("Tốc độ tăng trưởng tỷ lệ sở hữu", value=False)
+        stocks = st.session_state.stocks_data
+        if use_pct_change:
+            stocks = round(stocks.pct_change() * 100, 1).fillna(0)
+        if not stocks.empty:
+            stocks_sorted = stocks.loc[:, stocks.iloc[-1].sort_values(ascending=False).index].T
+        else:
+            if all(col in stocks_sorted.columns for col in value_columns):
+                stocks_sorted['lines'] = stocks_sorted[value_columns].values.tolist()
+            else:
+                st.warning("Some columns in value_columns do not exist in stocks_sorted.")
+                stocks_sorted = None
+        stocks_sorted.index.name = "Code"
+        value_columns = stocks_sorted.columns
+        stocks_sorted['lines'] = stocks_sorted[value_columns].values.tolist()
+    
     return stocks_sorted
 
 def main():

@@ -229,7 +229,7 @@ def plot_close_price_and_ratio(df_price, symbol, start_date, end_date):
         fig.update_layout(
             title_text=f"Tương quan giá và tỷ lệ sở hữu nước ngoài cổ phiếu {symbol}",
             xaxis_title="",
-            yaxis_title="Giá trị giao dịch",
+            yaxis_title="Giá cổ phiếu",
             yaxis2=dict(title="Tỷ lệ sở hữu nước ngoài", overlaying="y", side="right"),
             template="plotly_white",
             hovermode="x unified",

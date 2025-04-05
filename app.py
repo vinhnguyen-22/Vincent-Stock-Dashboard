@@ -1,3 +1,4 @@
+from contextlib import suppress
 from datetime import datetime, timedelta
 from math import sqrt
 import pandas as pd
@@ -94,14 +95,15 @@ def display_trading_analysis(stock, df_price,df_index, start_date, end_date):
     
     col_1, col_2 = st.columns(2)
     with col_1:
+        st.subheader("ĐỊNH GIÁ CỔ PHIẾU")
+        calculate_stock_metrics(df_price, df_index, df_pricing)
+    with col_2:
         st.subheader("THÔNG TIN CỔ PHIẾU")
         company = Vnstock().stock(symbol=stock, source="TCBS").company
         profile = company.profile()
         profile.set_index("company_name", inplace=True)
         st.dataframe(profile.T, use_container_width=True, )
-    with col_2:
-        st.subheader("ĐỊNH GIÁ CỔ PHIẾU")
-        calculate_stock_metrics(df_price, df_index, df_pricing)
+  
     st.divider()
     col_1, col_2 = st.columns(2)
     with col_1:
@@ -137,20 +139,23 @@ def display_quant_analysis(stock,end_date):
     
 def display_filter_stock(end_date):
     """Display market overview.""" 
-    if st.button("Danh sách cổ phiếu có tỷ trọng sở hữu nước ngoài cao nhất"):
-        market_cap = st.slider("Vốn Hóa Thị Trường: ", min_value=1, max_value=500,value=1, step=10)
-        net_bought_val = st.slider("GTNN mua ròng 20 ngày: ", min_value=1, max_value=200,value=5)
-        filter =  filter_stocks(end_date, market_cap=market_cap, net_bought_val=net_bought_val)
-        st.data_editor(filter,
-            column_config={
-                "lines": st.column_config.LineChartColumn(
-                    "Trend",
-                    width="medium",
-                ),
-            },
-            use_container_width=True
-        )
+    market_cap = st.slider("Vốn Hóa Thị Trường: ", min_value=1, max_value=500,value=1, step=10)
+    net_bought_val = st.slider("GTNN mua ròng 20 ngày: ", min_value=1, max_value=200,value=5)
+    filter =  filter_stocks(end_date, market_cap=market_cap, net_bought_val=net_bought_val)
+    # Reorder columns to show lines first
+    cols = ['lines'] + [col for col in filter.columns if col != 'lines']
+    filter = filter[cols]
     
+    st.data_editor(filter,
+        column_config={
+            "lines": st.column_config.LineChartColumn(
+                "Trend",
+                width="medium",
+            ),
+        },
+        use_container_width=True
+    )
+
     
     
 def main():
@@ -158,7 +163,14 @@ def main():
     """Main function to run the Streamlit app."""
     configure_streamlit()
     stock, start_date, end_date,period, page = get_sidebar_inputs()
-    st.title(f"{page}")
+    st.title(f"Vincent App - {page}")
+    st.divider()
+    st.info("""
+            Thông báo cập nhật 05/04/2025:
+            - Cập nhật chức năng bộ loc cổ phiếu.
+            - Cập nhật biểu đồ phân tích định lượng.
+            - Chức năng tổng quan thị trường đang trong quá trình phát triển.
+            """)
     
     if stock:
         df_price = get_stock_price(stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
@@ -172,7 +184,7 @@ def main():
         elif page == "🗂 Phân Bổ Danh Mục":
             display_portfolio_analysis()
         elif page == "🔍 Bộ Lọc Cổ Phiếu":
-            display_filter_stock(end_date)
+                display_filter_stock(end_date)
         else:
             display_trading_analysis(stock, df_price, df_index, start_date, end_date)
             
