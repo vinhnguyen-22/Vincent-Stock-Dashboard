@@ -80,7 +80,12 @@ def proprietary_trading_stock(stock, start, end):
 
 def plot_firm_pricing(df):
     try:
-        fig = px.scatter(df, x="reportDate", y="targetPrice", color="firm", labels={
+        fig = px.scatter(
+            df,
+            x="reportDate",
+            y="targetPrice",
+            color="firm",
+            labels={
                 "reportDate": "Ngày báo cáo",
                 "targetPrice": "Giá mục tiêu",
                 "firm": "Công ty chứng khoán",
@@ -129,7 +134,7 @@ def plot_foreign_trading(stock, start_date, end_date):
 
         # Cấu hình layout
         fig.update_layout(
-            title_text=f"Thống kê giao dịch và sở hữu nước ngoài",
+            title_text=f"Thống kê giao dịch và sở hữu nước ngoài cổ phiếu " + stock,
             xaxis_title="",
             yaxis_title="Giá trị giao dịch",
             yaxis2=dict(title="Foreigner ownership", overlaying="y", side="right", range=[0, 100]),
@@ -162,7 +167,7 @@ def plot_proprietary_trading(stock, start_date, end_date):
 
         # Cấu hình layout
         fig.update_layout(
-            title_text=f"Thống kê giao dịch và sở hữu nhà đầu tư tổ chức",
+            title_text=f"Thống kê giao dịch và sở hữu nhà đầu tư tổ chức cổ phiếu  " + stock,
             xaxis_title="",
             yaxis_title="Giá trị giao dịch",
             template="plotly_white",
@@ -194,6 +199,7 @@ def get_stock_price(symbol, start_date, end_date, interval="1D"):
     df["time"] = pd.to_datetime(df["time"])
     return df
 
+
 def plot_close_price_and_ratio(df_price, symbol, start_date, end_date):
     try:
 
@@ -203,11 +209,13 @@ def plot_close_price_and_ratio(df_price, symbol, start_date, end_date):
 
         # Add the close price trace
         fig.add_trace(
-            go.Scatter(x=result["time"], y=result["close"], mode="lines+markers", name="Close Price",
-                        marker=dict(
-                            size=6,
-                            symbol="cross"))
-            
+            go.Scatter(
+                x=result["time"],
+                y=result["close"],
+                mode="lines+markers",
+                name="Close Price",
+                marker=dict(size=6, symbol="cross"),
+            )
         )
 
         # Add the ratio trace
@@ -216,12 +224,9 @@ def plot_close_price_and_ratio(df_price, symbol, start_date, end_date):
                 x=result["time"],
                 y=round(result["ratio"] * 100, 2),
                 mode="lines+markers",
-                name="Sở hữu nước ngoài (%)", 
+                name="Sở hữu nước ngoài (%)",
                 yaxis="y2",
-                marker=dict(
-                    size=6,
-                    symbol="circle"
-                )
+                marker=dict(size=6, symbol="circle"),
             )
         )
 

@@ -1,18 +1,17 @@
 from math import sqrt
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import streamlit as st
 from pyparsing import col
-import streamlit as st
-from vnstock import Vnstock
-from src.config import PROCESSED_DATA_DIR
-from math import sqrt
-import pandas as pd
 from regex import D
-import streamlit as st
 from streamlit_tags import st_tags
 from vnstock import Vnstock
+
+from src.config import PROCESSED_DATA_DIR
+
 
 def get_port_price(symbols, start_date, end_date):
     result = pd.DataFrame()
@@ -33,16 +32,19 @@ def get_port(price, N=252):
     sharpe_ratio = port_annual_ret / port_annual_risk
     result = pd.DataFrame(
         {
-            "DailyReturn": port_ret.mean(),
-            "DailyRisk": port_ret.std(),
-            "AnnualReturn": port_annual_ret,
-            "AnnualRisk": port_annual_risk,
+            "% DailyReturn": port_ret.mean() * 100,
+            "% DailyRisk": port_ret.std() * 100,
+            "% AnnualReturn": port_annual_ret * 100,
+            "% AnnualRisk": port_annual_risk * 100,
             "Sharpe Ratio": sharpe_ratio,
         }
     )
     return result
 
-def calculate_optimal_portfolio(symbols, price, port, no_of_port=1000, risk_free_rate=0.05,nav = 100.00):
+
+def calculate_optimal_portfolio(
+    symbols, price, port, no_of_port=1000, risk_free_rate=0.05, nav=100.00
+):
     num_stocks = len(symbols)
     weight = np.zeros((no_of_port, num_stocks))
     expected_ret = np.zeros(no_of_port)
@@ -68,13 +70,13 @@ def calculate_optimal_portfolio(symbols, price, port, no_of_port=1000, risk_free
     optimal_portfolio = pd.DataFrame(
         {
             "Stock": symbols,
-            "Tối Ưu": weight[max_sharpe_index, :].round(decimals=2)*nav ,
-            "Tấn Công": weight[max_return_index, :].round(decimals=2)*nav,
-            "Phòng Thủ": weight[min_risk_index, :].round(decimals=2)*nav ,
+            "Tối Ưu": weight[max_sharpe_index, :].round(decimals=2) * nav,
+            "Tấn Công": weight[max_return_index, :].round(decimals=2) * nav,
+            "Phòng Thủ": weight[min_risk_index, :].round(decimals=2) * nav,
         }
     )
-    
-    optimal_portfolio.set_index("Stock",inplace=True)
+
+    optimal_portfolio.set_index("Stock", inplace=True)
 
     return optimal_portfolio
 
@@ -83,9 +85,9 @@ def plot_optimal_portfolio_chart(optimal_portfolio):
     categories = ["Tối Ưu", "Tấn Công", "Phòng Thủ"]
     optimal_portfolio.reset_index(inplace=True)
     ma_co_phieu = optimal_portfolio["Stock"].tolist()
-    data = optimal_portfolio[categories].values.T  
+    data = optimal_portfolio[categories].values.T
     total_values = np.sum(data, axis=1, keepdims=True)
-    ratios = (data / total_values) * 100  
+    ratios = (data / total_values) * 100
 
     fig = go.Figure()
 
@@ -109,13 +111,14 @@ def plot_optimal_portfolio_chart(optimal_portfolio):
     )
     st.plotly_chart(fig)
 
+
 def display_portfolio_analysis():
     col1, col2 = st.columns([1, 2])
     with col1:
         stocks = st_tags(
             label="Nhập mã chứng khoán ở đây",
             text="Press enter to add more",
-            value=[],
+            value=["ACB", "CTG", "FPT", "MBB", "HPG"],
             suggestions=["ACB", "FPT", "MBB", "HPG"],
             maxtags=5,
             key="aljnf",
@@ -126,7 +129,7 @@ def display_portfolio_analysis():
             st.write("{:,.2f}".format(nav))
         except ValueError:
             st.error("Vui lòng nhập một số hợp lệ cho NAV")
-            
+
     if stocks and st.button("Kết Quả"):
         price = get_port_price(stocks, "2015-01-01", "2025-01-01")
         port = get_port(price=price)
@@ -134,16 +137,18 @@ def display_portfolio_analysis():
         optimal_portfolio = calculate_optimal_portfolio(stocks, price, port, nav=nav)
         st.dataframe(optimal_portfolio, use_container_width=True)
         plot_optimal_portfolio_chart(optimal_portfolio)
-        
+
     with col2:
-        df_portfolio = pd.DataFrame({
-            "Danh mục": ["Tối Ưu", "Tấn Công", "Phòng Thủ"],
-            "Mô tả": [
-                "Danh mục tối ưu hóa lợi nhuận và rủi ro",
-                "Danh mục tập trung vào lợi nhuận cao",
-                "Danh mục tập trung vào rủi ro thấp"
-            ]
-        })
+        df_portfolio = pd.DataFrame(
+            {
+                "Danh mục": ["Tối Ưu", "Tấn Công", "Phòng Thủ"],
+                "Mô tả": [
+                    "Danh mục tối ưu hóa lợi nhuận và rủi ro",
+                    "Danh mục tập trung vào lợi nhuận cao",
+                    "Danh mục tập trung vào rủi ro thấp",
+                ],
+            }
+        )
         st.dataframe(df_portfolio.set_index("Danh mục"), use_container_width=True)
 
 
