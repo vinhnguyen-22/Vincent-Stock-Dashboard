@@ -200,7 +200,7 @@ def filter_by_pricing_stock(end_date):
 
     if 'pricing' not in st.session_state:
         st.session_state.pricing = None
-    stocks = filter_stock_by_icb()["symbol"].tolist()
+    stocks = filter_stock_by_icb()["symbol"]
     start_date = end_date - timedelta(days=90)
     df_safety = pd.DataFrame()
     if st.button("Lọc cổ phiếu theo định giá"):

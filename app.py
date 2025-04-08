@@ -189,7 +189,7 @@ def main():
         elif page == "🗂 Phân Bổ Danh Mục":
             display_portfolio_analysis()
         elif page == "🔍 Bộ Lọc Cổ Phiếu":
-                display_filter_stock(end_date)
+            display_filter_stock(end_date)
         else:
             display_trading_analysis(stock, df_price, df_index, start_date, end_date)
             
