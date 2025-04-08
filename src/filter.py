@@ -163,7 +163,7 @@ def filter_stocks_by_industry():
 
 def filter_stock_by_icb():
      # Lấy dữ liệu ngành từ API
-    stock = Vnstock().stock("ACB", source='VCI')
+    stock = Vnstock().stock("ACB" ,source='VCI')
     df = stock.listing.symbols_by_industries()
 
     # UI chọn ngành cấp 1
