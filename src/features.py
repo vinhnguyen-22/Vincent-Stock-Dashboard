@@ -213,9 +213,3 @@ def fetch_and_plot_ownership(symbol):
     st.plotly_chart(fig)
 
 
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    main()

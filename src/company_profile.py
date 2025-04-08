@@ -115,3 +115,4 @@ def calculate_stock_metrics(df_price, df_index, df_pricing):
         return st.dataframe(metrics.set_index("Thông Số"), use_container_width=True)
     except:
         return st.write("Không có dữ liệu")
+    

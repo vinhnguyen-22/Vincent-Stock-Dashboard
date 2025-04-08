@@ -12,7 +12,7 @@ from src.features import (
     plot_cashflow_analysis,
     plot_pie_fund,
 )
-from src.filter import filter_stocks
+from src.filter import filter_by_pricing_stock, filter_stocks, filter_stocks_by_industry
 from src.optimize_portfolio import (
     display_portfolio_analysis,
 )
@@ -81,8 +81,10 @@ def get_sidebar_inputs():
         else:
             end_date = st.date_input("Chọn ngày kết thúc", start_date + timedelta(days=30))
             period = (end_date - start_date).days
-
-    return stock, start_date, end_date, period, page
+            
+        # Initialize session state for industries and selections
+    
+        return stock, start_date, end_date, period, page
 
 
 def display_cashflow_analysis(stock, df_price, period):
@@ -141,21 +143,24 @@ def display_filter_stock(end_date):
     """Display market overview.""" 
     market_cap = st.slider("Vốn Hóa Thị Trường: ", min_value=1, max_value=500,value=1, step=10)
     net_bought_val = st.slider("GTNN mua ròng 20 ngày: ", min_value=1, max_value=200,value=5)
+    # stocks = filter_stocks_by_industry()
     filter =  filter_stocks(end_date, market_cap=market_cap, net_bought_val=net_bought_val)
     # Reorder columns to show lines first
-    cols = ['lines'] + [col for col in filter.columns if col != 'lines']
-    filter = filter[cols]
-    
-    st.data_editor(filter,
-        column_config={
-            "lines": st.column_config.LineChartColumn(
-                "Trend",
-                width="medium",
-            ),
-        },
-        use_container_width=True
-    )
-
+    if filter is None:
+        st.warning("Không có dữ liệu")
+    else:
+        cols = ['lines'] + [col for col in filter.columns if col != 'lines']
+        filter = filter[cols]
+        st.data_editor(filter,
+            column_config={
+                "lines": st.column_config.LineChartColumn(
+                    "Trend",
+                    width="medium",
+                ),
+            },
+            use_container_width=True
+        )
+    filter_by_pricing_stock(end_date)
     
     
 def main():
