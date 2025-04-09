@@ -15,7 +15,12 @@ from src.features import (
     plot_cashflow_analysis,
     plot_pie_fund,
 )
-from src.filter import filter_by_pricing_stock, filter_by_quantitative, filter_stocks
+from src.filter import (
+    filter_by_pricing_stock,
+    filter_by_quantitative,
+    filter_stocks,
+    filter_stocks_by_industry,
+)
 from src.optimize_portfolio import display_portfolio_analysis
 from src.plots import (
     get_firm_pricing,
@@ -150,8 +155,8 @@ def display_overview_market():
 
 def display_quant_analysis(stock, end_date):
     """Display market overview."""
-    quant_metric = calculate_quant_metrics(stock, end_date)
-    st.write(quant_metric)
+    years = st.selectbox("Chọn số năm phân tích: ", [5, 7, 10], index=0)
+    quant_metric = calculate_quant_metrics(stock, end_date, years)
 
 
 def display_filter_stock(end_date):
@@ -160,7 +165,8 @@ def display_filter_stock(end_date):
     net_bought_val = st.slider("GTNN mua ròng 20 ngày: ", min_value=1, max_value=200, value=5)
 
     filter_stocks(end_date, market_cap=market_cap, net_bought_val=net_bought_val)
-    filter_by_pricing_stock(end_date)
+    stocks = filter_stocks_by_industry()
+    filter_by_pricing_stock(stocks, end_date)
     stocks = st_tags(
         label="Nhập mã chứng khoán ở đây",
         text="Press enter to add more",
@@ -169,7 +175,8 @@ def display_filter_stock(end_date):
         maxtags=5,
         key="stocks_quant",
     )
-    filter_by_quantitative(stocks, end_date)
+    years = st.selectbox("Chọn số năm phân tích: ", [5, 7, 10], index=0)
+    filter_by_quantitative(stocks, end_date, years)
 
 
 def main():
