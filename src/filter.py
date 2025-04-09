@@ -6,6 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import requests
 import streamlit as st
+from streamlit_tags import st_tags
 from vnstock import Vnstock
 
 from src.optimize_portfolio import get_port, get_port_price
@@ -63,7 +64,7 @@ def filter_stocks(end_date, market_cap=50, net_bought_val=1):
             foreign = foreigner_trading_stock(
                 symbol, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
             )
-            if foreign:
+            if foreign is not None and not foreign.empty:
                 curr, total = foreign["currentRoom"], foreign["totalRoom"]
                 ownership_ratio = round((total - curr) / total * 100, 2)
                 stocks_data[symbol] = ownership_ratio
@@ -220,6 +221,14 @@ def plot_correlation_and_yield(stocks, start_date, end_date):
 
 def filter_by_quantitative(end_date):
     """Filter stocks using quantitative analysis."""
-    stocks = ["ACB", "BID", "CTG", "MBB", "VPB", "VNINDEX"]
-    start_date = end_date - timedelta(days=365 * 5)
-    plot_correlation_and_yield(stocks, start_date, end_date)
+    stocks = st_tags(
+        label="Nhập mã chứng khoán ở đây",
+        text="Press enter to add more",
+        value=["ACB", "CTG", "MBB"],
+        suggestions=["ACB", "FPT", "MBB", "HPG"],
+        maxtags=5,
+        key="cakscaks",
+    )
+    if st.button("So sánh các cổ phiếu "):
+        start_date = end_date - timedelta(days=365 * 5)
+        plot_correlation_and_yield(stocks, start_date, end_date)
