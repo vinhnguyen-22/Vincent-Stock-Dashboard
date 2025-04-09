@@ -5,6 +5,7 @@ from math import sqrt
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
+from streamlit_tags import st_tags
 from vnstock import Vnstock
 
 from src.company_profile import calculate_quant_metrics, calculate_stock_metrics
@@ -14,12 +15,7 @@ from src.features import (
     plot_cashflow_analysis,
     plot_pie_fund,
 )
-from src.filter import (
-    filter_by_pricing_stock,
-    filter_by_quantitative,
-    filter_stocks,
-    filter_stocks_by_industry,
-)
+from src.filter import filter_by_pricing_stock, filter_by_quantitative, filter_stocks
 from src.optimize_portfolio import display_portfolio_analysis
 from src.plots import (
     get_firm_pricing,
@@ -162,26 +158,18 @@ def display_filter_stock(end_date):
     """Display market overview."""
     market_cap = st.slider("Vốn Hóa Thị Trường: ", min_value=1, max_value=500, value=1, step=10)
     net_bought_val = st.slider("GTNN mua ròng 20 ngày: ", min_value=1, max_value=200, value=5)
-    # stocks = filter_stocks_by_industry()
-    filter = filter_stocks(end_date, market_cap=market_cap, net_bought_val=net_bought_val)
-    # Reorder columns to show lines first
-    if filter is None:
-        st.warning("Không có dữ liệu")
-    else:
-        cols = ["lines"] + [col for col in filter.columns if col != "lines"]
-        filter = filter[cols]
-        st.data_editor(
-            filter,
-            column_config={
-                "lines": st.column_config.LineChartColumn(
-                    "Trend",
-                    width="medium",
-                ),
-            },
-            use_container_width=True,
-        )
+
+    filter_stocks(end_date, market_cap=market_cap, net_bought_val=net_bought_val)
     filter_by_pricing_stock(end_date)
-    filter_by_quantitative(end_date)
+    stocks = st_tags(
+        label="Nhập mã chứng khoán ở đây",
+        text="Press enter to add more",
+        value=["ACB", "FPT", "HPG"],
+        suggestions=["ACB", "FPT", "MBB", "HPG"],
+        maxtags=5,
+        key="stocks_quant",
+    )
+    filter_by_quantitative(stocks, end_date)
 
 
 def main():

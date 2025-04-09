@@ -72,8 +72,20 @@ def filter_stocks(end_date, market_cap=50, net_bought_val=1):
         sorted_stocks = pd.DataFrame.from_dict(
             stocks_data, orient="index", columns=["Ownership Ratio"]
         ).sort_values(by="Ownership Ratio", ascending=False)
-        st.dataframe(sorted_stocks)
-        return sorted_stocks
+        if sorted_stocks is None:
+            st.warning("Không có dữ liệu")
+        else:
+            sorted_stocks["lines"] = []
+            st.data_editor(
+                sorted_stocks,
+                column_config={
+                    "lines": st.column_config.LineChartColumn(
+                        "Trend",
+                        width="medium",
+                    ),
+                },
+                use_container_width=True,
+            )
 
 
 def get_industry_data(level=1, higher_level_code=0):
@@ -95,9 +107,10 @@ def get_industry_data(level=1, higher_level_code=0):
 
 def filter_stocks_by_industry():
     """Filter stocks by industry hierarchy."""
-    industries_l1 = st.session_state.get("industries_l1") or get_industry_data(1)
+    industries_l1 = st.session_state.get("industries_l1")
+    if industries_l1 is None or industries_l1.empty:
+        industries_l1 = get_industry_data(1)
     st.session_state["industries_l1"] = industries_l1
-
     industry_l1_name = st.selectbox("Chọn ngành cấp 1", industries_l1["vietnameseName"].tolist())
     if not industry_l1_name:
         return None
@@ -105,7 +118,9 @@ def filter_stocks_by_industry():
     industry_l1_code = industries_l1.loc[
         industries_l1["vietnameseName"] == industry_l1_name, "industryCode"
     ].iloc[0]
-    industries_l2 = st.session_state.get("industries_l2") or get_industry_data(2, industry_l1_code)
+    industries_l2 = st.session_state.get("industries_l2")
+    if industries_l2 is None or industries_l2.empty:
+        industries_l2 = get_industry_data(2, industry_l1_code)
     st.session_state["industries_l2"] = industries_l2
 
     industry_l2_name = st.selectbox("Chọn ngành cấp 2", industries_l2["vietnameseName"].tolist())
@@ -115,7 +130,9 @@ def filter_stocks_by_industry():
     industry_l2_code = industries_l2.loc[
         industries_l2["vietnameseName"] == industry_l2_name, "industryCode"
     ].iloc[0]
-    industries_l3 = st.session_state.get("industries_l3") or get_industry_data(3, industry_l2_code)
+    industries_l3 = st.session_state.get("industries_l3")
+    if industries_l3 is None or industries_l3.empty:
+        industries_l3 = get_industry_data(3, industry_l2_code)
     st.session_state["industries_l3"] = industries_l3
 
     industry_l3_name = st.selectbox("Chọn ngành cấp 3", industries_l3["vietnameseName"].tolist())
@@ -125,7 +142,8 @@ def filter_stocks_by_industry():
     stocks = industries_l3.loc[
         industries_l3["vietnameseName"] == industry_l3_name, "codeList"
     ].iloc[0]
-    return stocks.split(",")
+    stocks = stocks.split(",")
+    return stocks
 
 
 def filter_by_pricing_stock(end_date):
@@ -219,16 +237,8 @@ def plot_correlation_and_yield(stocks, start_date, end_date):
         st.plotly_chart(fig_yield, use_container_width=True)
 
 
-def filter_by_quantitative(end_date):
+def filter_by_quantitative(stocks, end_date):
     """Filter stocks using quantitative analysis."""
-    stocks = st_tags(
-        label="Nhập mã chứng khoán ở đây",
-        text="Press enter to add more",
-        value=["ACB", "CTG", "MBB"],
-        suggestions=["ACB", "FPT", "MBB", "HPG"],
-        maxtags=5,
-        key="cakscaks",
-    )
     if st.button("So sánh các cổ phiếu "):
         start_date = end_date - timedelta(days=365 * 5)
         plot_correlation_and_yield(stocks, start_date, end_date)
