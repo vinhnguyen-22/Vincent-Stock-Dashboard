@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from math import sqrt
+from tabnanny import check
 
 import numpy as np
 import pandas as pd
@@ -55,23 +56,83 @@ def get_stock_data_from_api(market_cap_min, net_bought_val_avg_20d_min):
     return fetch_api_data(url, payload, {"Content-Type": "application/json"})
 
 
-def filter_stocks(end_date, market_cap=50, net_bought_val=1):
-    """Filter stocks based on foreign ownership ratio and show trend."""
+def filter_components():
+    """Filter stocks based on user input."""
+    st.subheader("🔍 Lọc cổ phiếu theo tiêu chí")
 
-    if st.button("Lọc cổ phiếu có tỷ trọng sở hữu nước ngoài cao nhất"):
+    stock_sets = []  # Mỗi tiêu chí lọc tạo ra một tập hợp mã cổ phiếu
+
+    # Lọc theo sàn giao dịch
+    if st.checkbox("Sàn giao dịch"):
+        exchange = st.selectbox(
+            "Chọn sàn giao dịch",
+            options=[
+                "HOSE",
+                "HNX",
+                "UPCOM",
+                "VN30",
+                "VN100",
+                "HNX30",
+                "VNMidCap",
+                "VNSmallCap",
+                "VNAllShare",
+                "HNXCon",
+                "HNXFin",
+                "HNXLCap",
+                "HNXMSCap",
+                "HNXMan",
+            ],
+            index=0,
+        )
+        stock_by_exchange = (
+            Vnstock().stock("ACB", source="VCI").listing.symbols_by_group(exchange).tolist()
+        )
+
+        stock_sets.append(set(stock_by_exchange))
+
+    # Lọc theo vốn hóa và GTNN
+    if st.checkbox("Lọc cổ phiếu theo vốn hóa và GTNN mua ròng"):
+        st.info(
+            "Chọn các tiêu chí để lọc cổ phiếu. Các cổ phiếu sẽ được lọc dựa trên vốn hóa thị trường và GTNN mua ròng 20 ngày."
+        )
+
+        market_cap = st.slider(
+            "Vốn Hóa Thị Trường (nghìn tỷ): ", min_value=1, max_value=500, value=1, step=10
+        )
+        net_bought_val = st.slider(
+            "GTNN mua ròng 20 ngày (tỷ): ", min_value=1, max_value=200, value=5
+        )
+
         market_cap_min = market_cap * 1e12
         net_bought_val_avg_20d_min = net_bought_val * 1e9
 
-        df = get_stock_data_from_api(market_cap_min, net_bought_val_avg_20d_min)
+        stock_by_filter = get_stock_data_from_api(market_cap_min, net_bought_val_avg_20d_min)
 
-        if df is None or df.empty:
-            st.warning("Không tìm thấy dữ liệu.")
-            return None
+        if stock_by_filter is not None and not stock_by_filter.empty:
+            stock_sets.append(set(stock_by_filter["code"].tolist()))
+
+    # Lọc theo ngành nghề
+    if st.checkbox("Ngành nghề"):
+        stock_by_industry = filter_stocks_by_industry()
+        if stock_by_industry:
+            stock_sets.append(set(stock_by_industry))
+
+    # Kết hợp kết quả lọc
+    if stock_sets:
+        filtered_stocks = set.intersection(*stock_sets)  # lấy giao của tất cả tập con
+    else:
+        filtered_stocks = set()
+    return list(filtered_stocks)
+
+
+def filter_by_ownerratio(stocks, end_date):
+    """Filter stocks based on foreign ownership ratio and show trend."""
+    if st.button("Lọc cổ phiếu có tỷ trọng sở hữu nước ngoài cao nhất"):
 
         start_date = end_date - timedelta(days=30)
         stocks_data = {}
 
-        for symbol in df["code"]:
+        for symbol in stocks:
             foreign = foreigner_trading_stock(
                 symbol, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
             ).sort_index(ascending=False)
@@ -95,10 +156,6 @@ def filter_stocks(end_date, market_cap=50, net_bought_val=1):
                 except Exception as e:
                     st.error(f"Lỗi xử lý dữ liệu cho mã {symbol}: {e}")
 
-        if not stocks_data:
-            st.warning("Không có cổ phiếu nào phù hợp.")
-            return None
-
         df_result = (
             pd.DataFrame.from_dict(stocks_data, orient="index")
             .sort_values(by="Ownership Ratio", ascending=False)
@@ -120,68 +177,38 @@ def filter_stocks(end_date, market_cap=50, net_bought_val=1):
         return df_result
 
 
-def get_industry_data(level=1, higher_level_code=0):
-    """Retrieve industry data from API."""
-    base_url = "https://api-finfo.vndirect.com.vn/v4/industry_classification"
-    params = [f"industryLevel:{level}"]
-    if higher_level_code:
-        params.append(f"higherLevelCode:{higher_level_code}")
-    url = f"{base_url}?q=" + "~".join(params)
-
-    try:
-        response = requests.get(url, headers=HEADERS)
-        response.raise_for_status()
-        return pd.DataFrame(response.json().get("data", []))
-    except requests.exceptions.RequestException as e:
-        st.error(f"API request failed: {e}")
-        return None
-
-
 def filter_stocks_by_industry():
-    """Filter stocks by industry hierarchy with caching and error handling."""
+    # Lấy dữ liệu ngành từ API
+    stock = Vnstock().stock("ACB", source="VCI")
+    df = stock.listing.symbols_by_industries()
 
-    def get_cached_industry_data(level, parent_code=0, force_refresh=False):
-        """Get industry data with caching in session state."""
-        cache_key = f"industries_l{level}"
-        if force_refresh or st.session_state.get(cache_key) is None:
-            data = get_industry_data(level, parent_code)
-            st.session_state[cache_key] = data
-        return st.session_state[cache_key]
+    # UI chọn ngành cấp 1
+    nganh1 = st.selectbox("Chọn ngành cấp 1", sorted(df["icb_name2"].unique()))
+    df_nganh1 = df[df["icb_name2"] == nganh1]
 
-    def select_industry_level(level, data, label, parent_code=0):
-        """Handle industry selection for a specific level."""
-        if data is None or data.empty:
-            st.error(f"No data available for {label}")
-            return None, None
+    # Hiện danh sách cổ phiếu ngay khi chỉ chọn ngành cấp 1
+    filtered = df_nganh1
 
-        selected = st.selectbox(label, data["vietnameseName"].tolist())
-        if not selected:
-            return None, None
+    # UI chọn ngành cấp 2 (tuỳ chọn)
+    nganh2 = st.selectbox(
+        "Chọn ngành cấp 2 (tùy chọn)",
+        options=["(Tất cả)"] + sorted(df_nganh1["icb_name3"].unique()),
+    )
 
-        industry_code = data.loc[data["vietnameseName"] == selected, "industryCode"].iloc[0]
-        return selected, industry_code
+    if nganh2 != "(Tất cả)":
+        df_nganh2 = df_nganh1[df_nganh1["icb_name3"] == nganh2]
+        filtered = df_nganh2
 
-    # Level 1 selection
-    industries_l1 = get_cached_industry_data(1)
-    name_l1, code_l1 = select_industry_level(1, industries_l1, "Chọn ngành cấp 1")
-    if not code_l1:
-        return None
+        # UI chọn ngành cấp 3 (tuỳ chọn)
+        nganh3 = st.selectbox(
+            "Chọn ngành cấp 3 (tùy chọn)",
+            options=["(Tất cả)"] + sorted(df_nganh2["icb_name4"].unique()),
+        )
 
-    # Level 2 selection
-    industries_l2 = get_cached_industry_data(2, code_l1, True)
-    name_l2, code_l2 = select_industry_level(2, industries_l2, "Chọn ngành cấp 2", code_l1)
-    if not code_l2:
-        return None
+        if nganh3 != "(Tất cả)":
+            filtered = df_nganh2[df_nganh2["icb_name4"] == nganh3]
 
-    # Level 3 selection
-    industries_l3 = get_cached_industry_data(3, code_l2, True)
-    name_l3, _ = select_industry_level(3, industries_l3, "Chọn ngành cấp 3", code_l2)
-    if not name_l3:
-        return None
-
-    # Get stock list
-    stocks = industries_l3.loc[industries_l3["vietnameseName"] == name_l3, "codeList"].iloc[0]
-    return stocks.split(",")
+    return filtered["symbol"].tolist()
 
 
 def filter_by_pricing_stock(stocks, end_date):

@@ -16,9 +16,10 @@ from src.features import (
     plot_pie_fund,
 )
 from src.filter import (
+    filter_by_ownerratio,
     filter_by_pricing_stock,
     filter_by_quantitative,
-    filter_stocks,
+    filter_components,
     filter_stocks_by_industry,
 )
 from src.optimize_portfolio import display_portfolio_analysis
@@ -161,11 +162,9 @@ def display_quant_analysis(stock, end_date):
 
 def display_filter_stock(end_date):
     """Display market overview."""
-    market_cap = st.slider("Vốn Hóa Thị Trường: ", min_value=1, max_value=500, value=1, step=10)
-    net_bought_val = st.slider("GTNN mua ròng 20 ngày: ", min_value=1, max_value=200, value=5)
+    stocks = filter_components()
+    filter_by_ownerratio(stocks, end_date)
 
-    filter_stocks(end_date, market_cap=market_cap, net_bought_val=net_bought_val)
-    stocks = filter_stocks_by_industry()
     filter_by_pricing_stock(stocks, end_date)
     stocks = st_tags(
         label="Nhập mã chứng khoán ở đây",
