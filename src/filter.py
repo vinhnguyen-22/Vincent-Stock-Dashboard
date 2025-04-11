@@ -12,13 +12,7 @@ from plotly.subplots import make_subplots
 from streamlit_tags import st_tags
 from vnstock import Vnstock
 
-from src.company_profile import (
-    calculate_drawdown_metrics,
-    calculate_extended_metrics,
-    calculate_quant_metrics,
-    calculate_risk_metrics,
-    plot_drawdown,
-)
+from src.company_profile import calculate_extended_metrics
 from src.optimize_portfolio import get_port, get_port_price
 from src.plots import foreigner_trading_stock, get_firm_pricing, get_stock_price
 

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -52,7 +53,7 @@ def plot_price_chart(df):
         st.write("No data available:", e)
 
 
-def plot_cashflow_analysis(df_price,stock, period):
+def plot_cashflow_analysis(df_price, stock, period):
     st.write(
         """
         | Loại Nhà Đầu Tư   | Đặc Điểm Chính | Chủ Thể |
@@ -83,8 +84,10 @@ def plot_cashflow_analysis(df_price,stock, period):
     sell_columns = ["Shark sell", "Wolf sell", "Sheep sell"]
     df_stacked = df[["date"] + buy_columns + sell_columns]
     df_stacked["date"] = pd.to_datetime(df_stacked["date"])
-    
-    df_stacked = df_stacked.merge(df_price[["time", "close"]], left_on="date", right_on="time", how="left")
+
+    df_stacked = df_stacked.merge(
+        df_price[["time", "close"]], left_on="date", right_on="time", how="left"
+    )
     fig = go.Figure()
 
     buy_colors = ["green", "lightgreen", "yellowgreen"]
@@ -99,9 +102,15 @@ def plot_cashflow_analysis(df_price,stock, period):
         fig.add_trace(
             go.Bar(x=df_stacked["date"], y=df_stacked[col], name=col, marker_color=color)
         )
-        
+
     fig.add_trace(
-        go.Scatter(x=df_stacked["date"], y=df_stacked["close"], name="Close Price", yaxis="y2", line=dict(color='blue'))
+        go.Scatter(
+            x=df_stacked["date"],
+            y=df_stacked["close"],
+            name="Close Price",
+            yaxis="y2",
+            line=dict(color="blue"),
+        )
     )
     fig.update_layout(
         barmode="stack",
@@ -109,23 +118,16 @@ def plot_cashflow_analysis(df_price,stock, period):
         xaxis_title="",
         yaxis_title="",
         legend_title="Order Type",
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=-0.2,
-            xanchor="center",
-            x=0.5
-        ),
-        yaxis2=dict(
-            title="Close Price",
-            overlaying="y",
-            side="right"
-        )
+        legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
+        yaxis2=dict(title="Close Price", overlaying="y", side="right"),
     )
 
     st.plotly_chart(fig, use_container_width=True)
-    res = analysis_with_ai(df_stacked,f"Dưới đây là dữ liệu giá và giao dịch chủ động của cổ phiếu {stock} hãy phân tích dữ liệu này")
-    st.write(res)   
+    res = analysis_with_ai(
+        df_stacked,
+        f"Dưới đây là dữ liệu giá và giao dịch chủ động của cổ phiếu {stock} hãy phân tích dữ liệu này",
+    )
+    st.write(res)
 
 
 def get_fund_data(start_date):
@@ -143,6 +145,22 @@ def get_fund_data(start_date):
     except requests.exceptions.RequestException as e:
         print("Yêu cầu không thành công:", e)
         return None
+
+
+@st.cache_data(ttl=600)
+def fetch_cashflow_market(ticker, layer_key):
+    date = datetime.now().strftime("%Y-%m-%d")
+    url = f"https://api-finfo.vndirect.com.vn/v4/cashflow_analysis/latest?order=time&where=code:{ticker}~period:1D&filter=date:{date}"
+    res = requests.get(url, headers=HEADERS)
+    res.raise_for_status()
+    data = res.json()
+    df = pd.DataFrame(data["data"])
+    if df.empty:
+        return df
+    df["datetime"] = pd.to_datetime(df["date"] + " " + df["time"])
+    df["ticker"] = ticker
+
+    return df[["datetime", layer_key, "ticker"]].rename(columns={layer_key: "netVal"})
 
 
 def plot_pie_fund(df):
@@ -211,5 +229,3 @@ def fetch_and_plot_ownership(symbol):
     fig.update_layout(legend_title_text="Investor Types")
 
     st.plotly_chart(fig)
-
-
