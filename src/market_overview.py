@@ -41,7 +41,6 @@ def overview_market():
             df = pd.concat([df, df_cf], ignore_index=True)
 
     # Add title and description
-    st.title("HOSE Stock Market Analysis - April 11, 2025")
     st.markdown(
         """
         Dashboard phân tích hoạt động giao dịch, cung cấp thông tin chi tiết về khối lượng giao dịch, hành vi của người mua/người bán và xác định các xu hướng thị trường quan trọng.
