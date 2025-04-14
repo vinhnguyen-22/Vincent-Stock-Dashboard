@@ -1,5 +1,6 @@
 from contextlib import suppress
 from datetime import datetime, timedelta
+from dis import dis
 from math import sqrt
 
 import pandas as pd
@@ -26,6 +27,7 @@ from src.filter import (
     filter_components,
     filter_stocks_by_industry,
 )
+from src.market_overview import overview_market
 from src.optimize_portfolio import display_portfolio_analysis
 from src.plots import (
     get_firm_pricing,
@@ -153,66 +155,38 @@ def display_trading_analysis(stock, df_price, df_index, start_date, end_date):
 
 def display_overview_market():
     """Display market overview."""
+    overview_market()
+    st.divider()
     start = st.date_input("Chọn ngày: ", datetime(2025, 1, 1))
     df = get_fund_data(start.strftime("%Y-%m-%d"))
     plot_pie_fund(df)
-    exchange = st.selectbox(
-        "Chọn sàn giao dịch",
-        options=[
-            "HOSE",
-            "HNX",
-            "UPCOM",
-            "VN30",
-            "VN100",
-            "HNX30",
-            "VNMidCap",
-            "VNSmallCap",
-            "VNAllShare",
-            "HNXCon",
-            "HNXFin",
-            "HNXLCap",
-            "HNXMSCap",
-            "HNXMan",
-        ],
-        index=0,
-    )
-    stock_by_exchange = (
-        Vnstock().stock("ACB", source="VCI").listing.symbols_by_group(exchange).tolist()
-    )
-    layer = st.selectbox("Chọn tầng nhà đầu tư để hiển thị:", options=["Top", "Mid", "Bot"])
-    layer_key_map = {"Top": "netTopVal", "Mid": "netMidVal", "Bot": "netBotVal"}
-    layer_key = layer_key_map[layer]
-    all_data = pd.DataFrame()
-    for ticker in stock_by_exchange:
-        df_cf = fetch_cashflow_market(ticker, layer_key)
-        if not df_cf.empty:
-            all_data = pd.concat([all_data, df_cf], ignore_index=True)
 
-    if all_data.empty:
-        st.warning("Không có dữ liệu hợp lệ cho các mã đã nhập.")
-    else:
-        # --- Vẽ biểu đồ ---
-        fig = go.Figure()
-        for ticker in stock_by_exchange:
-            df_plot = all_data[all_data["ticker"] == ticker]
-            fig.add_trace(
-                go.Scatter(
-                    x=df_plot["ticker"], y=df_plot["netVal"], mode="lines+markers", name=ticker
-                )
-            )
 
-        fig.update_layout(
-            title=f"So sánh dòng tiền {layer} nhà đầu tư theo thời gian",
-            xaxis_title="Thời gian",
-            yaxis_title="Giá trị mua ròng (triệu VND)",
-            legend_title="Mã cổ phiếu",
-            height=600,
-        )
-        st.plotly_chart(fig, use_container_width=True)
+# if all_data.empty:
+#     st.warning("Không có dữ liệu hợp lệ cho các mã đã nhập.")
+# else:
+#     # --- Vẽ biểu đồ ---
+#     fig = go.Figure()
+#     for ticker in stock_by_exchange:
+#         df_plot = all_data[all_data["code"] == ticker]
+#         fig.add_trace(
+#             go.Scatter(
+#                 x=df_plot["code"], y=df_plot["netVal"], mode="lines+markers", name=ticker
+#             )
+#         )
 
-        # --- Bảng dữ liệu ---
-        with st.expander("📋 Xem dữ liệu chi tiết"):
-            st.dataframe(all_data)
+#     fig.update_layout(
+#         title=f"So sánh dòng tiền {layer} nhà đầu tư theo thời gian",
+#         xaxis_title="Thời gian",
+#         yaxis_title="Giá trị mua ròng (triệu VND)",
+#         legend_title="Mã cổ phiếu",
+#         height=600,
+#     )
+#     st.plotly_chart(fig, use_container_width=True)
+
+#     # --- Bảng dữ liệu ---
+#     with st.expander("📋 Xem dữ liệu chi tiết"):
+#         st.dataframe(all_data)
 
 
 def display_quant_analysis(stock, end_date):

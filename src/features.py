@@ -148,7 +148,7 @@ def get_fund_data(start_date):
 
 
 @st.cache_data(ttl=600)
-def fetch_cashflow_market(ticker, layer_key):
+def fetch_cashflow_market(ticker):
     date = datetime.now().strftime("%Y-%m-%d")
     url = f"https://api-finfo.vndirect.com.vn/v4/cashflow_analysis/latest?order=time&where=code:{ticker}~period:1D&filter=date:{date}"
     res = requests.get(url, headers=HEADERS)
@@ -158,9 +158,7 @@ def fetch_cashflow_market(ticker, layer_key):
     if df.empty:
         return df
     df["datetime"] = pd.to_datetime(df["date"] + " " + df["time"])
-    df["ticker"] = ticker
-
-    return df[["datetime", layer_key, "ticker"]].rename(columns={layer_key: "netVal"})
+    return df
 
 
 def plot_pie_fund(df):

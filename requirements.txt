@@ -23,3 +23,5 @@ langchain-core
 langchain_ollama
 google-genai
 scipy
+joblib
+scikit-learn
