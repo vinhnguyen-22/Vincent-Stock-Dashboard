@@ -1,7 +1,7 @@
 from contextlib import suppress
 from datetime import datetime, timedelta
 from dis import dis
-from math import sqrt
+from math import e, sqrt
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -27,6 +27,7 @@ from src.filter import (
     filter_components,
     filter_stocks_by_industry,
 )
+from src.fund import display_fund_data
 from src.market_overview import overview_market
 from src.optimize_portfolio import display_portfolio_analysis
 from src.plots import (
@@ -65,10 +66,11 @@ def get_sidebar_inputs():
             "",
             [
                 "📈 Phân Tích Cổ Phiếu",
-                "🎲 Phân Tích Định Lượng",
                 "🌍 Tổng Quan Thị Trường",
                 "🔍 Bộ Lọc Cổ Phiếu",
                 "💰 Phân Tích Dòng Tiền",
+                "💲 Đầu Tư Quỹ Mở",
+                "🎲 Phân Tích Định Lượng",
                 "🗂 Phân Bổ Danh Mục",
                 "🧐 Danh Mục Tham Khảo",
             ],
@@ -221,10 +223,8 @@ def main():
     st.divider()
     st.info(
         """
-            Thông báo cập nhật 05/04/2025:
-            - Cập nhật chức năng bộ loc cổ phiếu.
-            - Cập nhật biểu đồ phân tích định lượng.
-            - Chức năng tổng quan thị trường đang trong quá trình phát triển.
+            Thông báo cập nhật 18/04/2025:
+            - Cập nhật chức năng phân tích quỹ.
             """
     )
 
@@ -245,8 +245,12 @@ def main():
             display_portfolio_analysis()
         elif page == "🔍 Bộ Lọc Cổ Phiếu":
             display_filter_stock(end_date)
-        else:
+        elif page == "📈 Phân Tích Cổ Phiếu":
             display_trading_analysis(stock, df_price, df_index, start_date, end_date)
+        elif page == "💲 Đầu Tư Quỹ Mở":
+            display_fund_data()
+        else:
+            display_overview_market()
 
 
 if __name__ == "__main__":

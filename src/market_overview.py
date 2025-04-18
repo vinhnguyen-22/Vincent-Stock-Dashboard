@@ -53,7 +53,7 @@ def overview_market():
             "Khối lượng giao dịch",
             "Buy/Sell Balance",
             "Giá trị ròng theo danh mục",
-            "Concentration Analysis",
+            "Mức độ tập trung giao dịch",
         ]
     )
 
@@ -96,7 +96,7 @@ def overview_market():
             st.metric("Khối Lượng Giao Dịch Trung Bình", f"{average_volume:,.0f}")
 
     with tab2:
-        st.header("Buy/Sell Balance Analysis")
+        st.header("Phân Tích Mua/Bán")
 
         # Calculate total buy and sell values for each stock
         df["totalBuyVal"] = df["topActiveBuyVal"] + df["midActiveBuyVal"] + df["botActiveBuyVal"]
@@ -152,7 +152,7 @@ def overview_market():
                 y=[50] * len(buy_sell_df),
                 mode="lines",
                 name="Equal Buy/Sell (50%)",
-                line=dict(color="black", width=1, dash="dash"),
+                line=dict(color="orange", width=1, dash="dash"),
             ),
             secondary_y=True,
         )
@@ -289,14 +289,14 @@ def overview_market():
             color="netTopVal",
             hover_name="code",
             text="code",
-            title="Top Trader Concentration Analysis",
+            title="Phân tích lựa chọn các nhà giao dịch hàng đầu",
             labels={
                 "topBuyConcentration": "Top Trader Buy Concentration (%)",
                 "topSellConcentration": "Top Trader Sell Concentration (%)",
                 "totalVal": "Total Trading Value",
                 "netTopVal": "Net Top Trader Value",
             },
-            color_continuous_scale="RdBu_r",
+            color_continuous_scale="RdYlGn",
             range_color=[-df["netTopVal"].abs().max(), df["netTopVal"].abs().max()],
         )
 
@@ -307,7 +307,7 @@ def overview_market():
                 x=[0, max_val],
                 y=[0, max_val],
                 mode="lines",
-                line=dict(color="black", width=1, dash="dash"),
+                line=dict(color="orange", width=1, dash="dash"),
                 name="Equal Concentration",
             )
         )
@@ -350,7 +350,7 @@ def overview_market():
             highest_top_sell = df.sort_values(by="topSellConcentration", ascending=False).iloc[0]
 
             st.metric(
-                "Highest Top Trader Buy Concentration",
+                "Mức độ tập trung mua cao nhất của nhà đầu tư hàng đầu",
                 f"{highest_top_buy['code']}",
                 f"{highest_top_buy['topBuyConcentration']:.2f}%",
             )
@@ -369,7 +369,7 @@ def overview_market():
     with col1:
         # Calculate total market stats
         total_market_value = df["totalVal"].sum()
-        st.metric("Total Market Trading Value", f"{total_market_value:,.0f}")
+        st.metric("Tổng Giá Trị Giao Dịch Toàn Thị Trường", f"{total_market_value:,.0f}")
 
         # Net market movement (sum of all net values)
         net_market = df["netVal"].sum()
@@ -384,10 +384,10 @@ def overview_market():
         highest_gain = df.loc[df["netVal"].idxmax()]
         highest_loss = df.loc[df["netVal"].idxmin()]
 
-        st.subheader("Extreme Movers")
+        st.subheader("Xu hướng giao dịch nổi bật")
         st.markdown(
-            f"**Highest Net Buying:** {highest_gain['code']} ({highest_gain['netVal']:,.0f})"
+            f"**Mua Ròng Cao Nhất:** {highest_gain['code']} ({highest_gain['netVal']:,.0f})"
         )
         st.markdown(
-            f"**Highest Net Selling:** {highest_loss['code']} ({highest_loss['netVal']:,.0f})"
+            f"**Bán Ròng Cao Nhất:** {highest_loss['code']} ({highest_loss['netVal']:,.0f})"
         )

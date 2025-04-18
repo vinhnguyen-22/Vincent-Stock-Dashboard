@@ -11,13 +11,14 @@ from streamlit_tags import st_tags
 from vnstock import Vnstock
 
 from src.config import PROCESSED_DATA_DIR
+from src.tcbs_stock_data import TCBSStockData
 
 
 def get_port_price(symbols, start_date, end_date):
     result = pd.DataFrame()
     for s in symbols:
-        stock = Vnstock().stock(symbol=s, source="TCBS")
-        df = stock.quote.history(start=start_date, end=end_date, interval="1D")
+        tcbs = TCBSStockData(rate_limit_pause=0)
+        df = tcbs.get_stock_data_by_date_range(s, start_date=start_date, end_date=end_date)
         if result.empty:
             result["time"] = df["time"]
         result[s] = df["close"]
@@ -57,7 +58,7 @@ def calculate_optimal_portfolio(
         weight_random = np.random.random(num_stocks)
         weight_random /= np.sum(weight_random)
         weight[i, :] = weight_random
-        expected_ret[i] = np.sum(port["AnnualReturn"] * weight_random)
+        expected_ret[i] = np.sum(port["% AnnualReturn"] * weight_random)
         expected_vol[i] = np.sqrt(
             np.dot(weight_random.T, np.dot(port_ret.cov() * 252, weight_random))
         )

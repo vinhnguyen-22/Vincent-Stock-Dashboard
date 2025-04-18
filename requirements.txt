@@ -25,3 +25,4 @@ google-genai
 scipy
 joblib
 scikit-learn
+streamlit_option_menu

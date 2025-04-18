@@ -311,7 +311,7 @@ with tab4:
             x=[0, max_val],
             y=[0, max_val],
             mode="lines",
-            line=dict(color="black", width=1, dash="dash"),
+            line=dict(color="yellow", width=1, dash="dash"),
             name="Equal Concentration",
         )
     )
