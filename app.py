@@ -8,10 +8,10 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 from dotenv import load_dotenv
+from numpy import empty
 from streamlit_tags import st_tags
 from vnstock import Vnstock
 
-from src.company_profile import calculate_quant_metrics, calculate_stock_metrics
 from src.features import (
     fetch_and_plot_ownership,
     fetch_cashflow_data,
@@ -38,6 +38,7 @@ from src.plots import (
     plot_foreign_trading,
     plot_proprietary_trading,
 )
+from src.quant_profile import calculate_quant_metrics, calculate_stock_metrics
 
 load_dotenv()
 period = 7
@@ -203,16 +204,18 @@ def display_filter_stock(end_date):
     filter_by_ownerratio(stocks, end_date)
 
     filter_by_pricing_stock(stocks, end_date)
-    stocks = st_tags(
-        label="Nhập mã chứng khoán ở đây",
-        text="Press enter to add more",
-        value=["ACB", "FPT", "HPG"],
-        suggestions=["ACB", "FPT", "MBB", "HPG"],
-        maxtags=5,
-        key="stocks_quant",
-    )
-    years = st.selectbox("Chọn số năm phân tích: ", [5, 7, 10], index=0)
-    filter_by_quantitative(stocks, end_date, years)
+    st.write(", ".join(stocks))
+    if stocks:
+
+        stocks_tag = st_tags(
+            label="Nhập mã chứng khoán ở đây",
+            text="Press enter to add more",
+            value=stocks,
+            suggestions=stocks,
+            key="stocks_quant",
+        )
+        years = st.selectbox("Chọn số năm phân tích: ", [5, 7, 10], index=0)
+        filter_by_quantitative(stocks_tag, end_date, years)
 
 
 def main():

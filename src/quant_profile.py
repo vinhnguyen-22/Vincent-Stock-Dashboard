@@ -140,7 +140,6 @@ def calculate_quant_metrics(stock, end_date, years):
     annual_return, annual_std, sharpe_ratio, sortino = calculate_risk_metrics(ret_stock)
     beta_adj = calculate_beta(ret_stock, ret_index)
     max_drawdown, max_duration = calculate_drawdown_metrics(df_data)
-
     # Calculate CAGR and VaR
     n_years = np.ceil((df_data.index[-1] - df_data.index[0]).days / 365)
     cagr = (df_data.iloc[-1]["close"] / df_data["close"][0]) ** (1 / n_years) - 1

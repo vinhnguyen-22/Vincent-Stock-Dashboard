@@ -5,6 +5,8 @@ import requests
 import streamlit as st
 from vnstock import Vnstock
 
+from src.tcbs_stock_data import TCBSStockData
+
 cookies = {
     "vnds-uuid": "4408bacf-3ab6-44f4-a8bf-e1f775a4cfd1",
     "vnds-uuid-d": "1692352399674",
@@ -194,9 +196,10 @@ def get_stock_data_with_ratio(df_price, symbol, start_date, end_date):
 
 
 def get_stock_price(symbol, start_date, end_date, interval="1D"):
-    stock = Vnstock().stock(symbol=symbol, source="TCBS")
-    df = stock.quote.history(start=start_date, end=end_date, interval=interval)
+    tcbs = TCBSStockData(rate_limit_pause=0)
+    df = tcbs.get_stock_data_by_date_range(symbol, start_date=start_date, end_date=end_date)
     df["time"] = pd.to_datetime(df["time"])
+    df["close"] = df["close"].astype(float) / 1000
     return df
 
 

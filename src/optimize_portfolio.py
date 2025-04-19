@@ -14,11 +14,13 @@ from src.config import PROCESSED_DATA_DIR
 from src.tcbs_stock_data import TCBSStockData
 
 
-def get_port_price(symbols, start_date, end_date):
+def get_port_price(symbols, start_date, end_date, interval="W"):
     result = pd.DataFrame()
     for s in symbols:
         tcbs = TCBSStockData(rate_limit_pause=0)
-        df = tcbs.get_stock_data_by_date_range(s, start_date=start_date, end_date=end_date)
+        df = tcbs.get_stock_data_by_date_range(
+            s, start_date=start_date, end_date=end_date, resolution=interval
+        )
         if result.empty:
             result["time"] = df["time"]
         result[s] = df["close"]

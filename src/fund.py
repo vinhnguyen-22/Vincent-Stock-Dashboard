@@ -1357,7 +1357,6 @@ def display_fund_data():
 
             # Biểu đồ tỷ trọng của ngành trong các quỹ
             industry_details_sorted = industry_details.sort_values(weight_col, ascending=False)
-
             fig = create_bar_chart(
                 industry_details_sorted,
                 x="fund_code",

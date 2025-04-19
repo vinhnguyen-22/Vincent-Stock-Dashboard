@@ -110,7 +110,7 @@ class TCBSStockData:
         while current_to >= from_timestamp:
             params = {
                 "ticker": ticker,
-                "type": "stock",
+                "type": "index" if ticker == "VNINDEX" else "stock",
                 "resolution": resolution,
                 "to": current_to,
                 "countBack": max_count_per_request,

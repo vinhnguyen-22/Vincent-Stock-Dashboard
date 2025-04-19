@@ -12,9 +12,9 @@ from plotly.subplots import make_subplots
 from streamlit_tags import st_tags
 from vnstock import Vnstock
 
-from src.company_profile import calculate_extended_metrics
 from src.optimize_portfolio import get_port, get_port_price
 from src.plots import foreigner_trading_stock, get_firm_pricing, get_stock_price
+from src.quant_profile import calculate_extended_metrics
 
 HEADERS = {
     "Upgrade-Insecure-Requests": "1",
@@ -61,9 +61,9 @@ def filter_components():
         exchange = st.selectbox(
             "Chọn sàn giao dịch",
             options=[
-                "HOSE",
-                "HNX",
-                "UPCOM",
+                # "HOSE",
+                # "HNX",
+                # "UPCOM",
                 "VN30",
                 "VN100",
                 "HNX30",
@@ -337,7 +337,6 @@ def plot_risk_metrics_radar(metrics_df):
         color="Stock",
         line_close=True,
         markers=True,
-        template="plotly_dark",
     )
     fig.update_layout(title="So sánh Risk Metrics giữa các cổ phiếu", height=600)
     return fig
@@ -348,7 +347,7 @@ def run_quant_analyzer(stocks, start_date, end_date, risk_profile="Moderate"):
 
     weights = get_risk_weights(risk_profile)
     df_stocks = get_port_price(
-        stocks, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
+        stocks, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"), interval="W"
     )
     df_stocks = df_stocks[~df_stocks.index.duplicated(keep="first")]
     returns = np.log(df_stocks / df_stocks.shift(1)).dropna()
@@ -380,7 +379,7 @@ def run_quant_analyzer(stocks, start_date, end_date, risk_profile="Moderate"):
         rank_df,
         color_continuous_scale="blues",
         text_auto=True,
-        labels=dict(x="Chỉ số", y="Mã cổ phiếu", color="Thứ hạng"),
+        labels=dict(x="Mã cổ phiếu", y="Chỉ số", color="Thứ hạng"),
         title="Thứ hạng (1 = tốt nhất)",
     )
     cumulative_returns = (1 + returns).cumprod()
