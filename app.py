@@ -4,6 +4,7 @@ from dis import dis
 from math import e, sqrt
 
 import pandas as pd
+import plotly.express as px
 import plotly.graph_objects as go
 import requests
 import streamlit as st
@@ -16,6 +17,7 @@ from src.features import (
     fetch_and_plot_ownership,
     fetch_cashflow_data,
     fetch_cashflow_market,
+    get_company_plan,
     get_fund_data,
     plot_cashflow_analysis,
     plot_pie_fund,
@@ -115,19 +117,169 @@ def display_trading_analysis(stock, df_price, df_index, start_date, end_date):
     """Display trading analysis for the selected stock."""
     df_pricing = get_firm_pricing(stock, "2024-01-01")
 
-    col_1, col_2 = st.columns(2)
-    with col_1:
-        st.subheader("ĐỊNH GIÁ CỔ PHIẾU")
-        calculate_stock_metrics(df_price, df_index, df_pricing)
-    with col_2:
-        st.subheader("THÔNG TIN CỔ PHIẾU")
-        company = Vnstock().stock(symbol=stock, source="TCBS").company
-        profile = company.profile()
-        profile.set_index("company_name", inplace=True)
-        st.dataframe(
-            profile.T,
-            use_container_width=True,
+    df = get_company_plan(stock, 2015)
+    if "netRevenueVal" and "netRevenueEst" not in df.columns:
+        df["netRevenueVal"] = 100
+        df["netRevenueEst"] = 100
+
+    df = df.sort_values("fiscalYear")
+    df["% Doanh Thu Kế Hoạch"] = df["netRevenueVal"] / df["netRevenueEst"] * 100
+    df["% Lợi nhuận kế hoạch"] = df["profitAftTaxVal"] / df["profitAftTaxEst"] * 100
+    df.dropna(subset="% Doanh Thu Kế Hoạch", inplace=True)
+    df.dropna(subset="% Lợi nhuận kế hoạch", inplace=True)
+    latest_year = df["fiscalYear"].iloc[-1]
+    latest_data = df[df["fiscalYear"] == latest_year].iloc[0]
+
+    def format_number(num, suffix=""):
+        """Format large numbers to K, M, B, T"""
+        if num >= 1_000_000_000:
+            formatted = f"{num / 1_000_000_000:,.0f}"
+            return f"{formatted} Tỷ {suffix}"
+        elif num >= 1_000_000:
+            formatted = f"{num / 1_000_000:,.0f}"
+            return f"{formatted} Triệu {suffix}"
+        elif num >= 1_000:
+            formatted = f"{num / 1_000:,.0f}"
+            return f"{formatted} Ngàn {suffix}"
+        else:
+            formatted = f"{num:,.0f}"
+            return f"{formatted} {suffix}"
+
+    st.header("Tổng quan công ty")
+    calculate_stock_metrics(stock, df_price, df_index, df_pricing)
+
+    col1, col2, col3, col4, col5 = st.columns(5)
+    with col1:
+        st.metric(
+            label="Kế Hoạch Doanh Thu",
+            value=format_number(latest_data["netRevenueEst"]),
+            delta=f"{latest_data['% Doanh Thu Kế Hoạch']:.2f}% Kế hoạch.",
         )
+
+    with col2:
+        st.metric(
+            label="Kế Hoạch Lợi Nhuận Sau Thuế",
+            value=format_number(latest_data["profitAftTaxEst"]),
+            delta=f"{latest_data['% Lợi nhuận kế hoạch']:.2f}% Kế hoạch",
+        )
+    with col3:
+        # Calculate YoY growth for net revenue
+        if len(df) >= 2:
+            prev_year = int(latest_year) - 1
+            filtered_df = df[df["fiscalYear"] == prev_year]
+            if not filtered_df.empty:
+                prev_year_data = filtered_df.iloc[0]
+                yoy_growth = (
+                    (latest_data["netRevenueVal"] / prev_year_data["netRevenueVal"]) - 1
+                ) * 100
+                st.metric(
+                    label="YoY Net Revenue Growth",
+                    value=f"{yoy_growth:.2f}%",
+                    delta=f"{yoy_growth:.2f}%",
+                )
+            else:
+                st.metric(label="YoY Net Revenue Growth", value="N/A")
+        else:
+            st.metric(label="YoY Net Revenue Growth", value="N/A")
+    st.sidebar.header("Filter Options")
+    year_range = st.sidebar.slider(
+        "Select Year Range",
+        min_value=int(df["fiscalYear"].min()),
+        max_value=int(df["fiscalYear"].max()),
+        value=(int(df["fiscalYear"].min()), int(df["fiscalYear"].max())),
+    )
+
+    # Filter data based on selected years
+    filtered_df = df[
+        (df["fiscalYear"].astype(int) >= year_range[0])
+        & (df["fiscalYear"].astype(int) <= year_range[1])
+    ]
+
+    def create_comparison_plot(filtered_df, metric_type):
+        """
+        Create a reusable comparison plot for financial metrics.
+
+        Args:
+            filtered_df: DataFrame with financial data
+            metric_type: 'revenue' or 'profit' to determine which metrics to plot
+        """
+        metrics = {
+            "revenue": {
+                "est_col": "netRevenueEst",
+                "val_col": "netRevenueVal",
+                "pct_col": "% Doanh Thu Kế Hoạch",
+                "est_name": "Estimate Net Revenue",
+                "val_name": "Actual Net Revenue",
+                "title": "Net Revenue: Actual vs Estimated (Billions VND)",
+            },
+            "profit": {
+                "est_col": "profitAftTaxEst",
+                "val_col": "profitAftTaxVal",
+                "pct_col": "% Lợi nhuận kế hoạch",
+                "est_name": "Estimate Profit Revenue",
+                "val_name": "Actual Profit After Tax",
+                "title": "Profit After Tax: Actual vs Estimated (Billions VND)",
+            },
+        }
+
+        m = metrics[metric_type]
+        fig = go.Figure()
+
+        # Add estimate bar
+        fig.add_trace(
+            go.Bar(x=filtered_df["fiscalYear"], y=filtered_df[m["est_col"]], name=m["est_name"])
+        )
+
+        # Add actual bar
+        fig.add_trace(
+            go.Bar(x=filtered_df["fiscalYear"], y=filtered_df[m["val_col"]], name=m["val_name"])
+        )
+
+        # Add percentage line
+        fig.add_trace(
+            go.Scatter(
+                x=filtered_df["fiscalYear"],
+                y=filtered_df[m["pct_col"]],
+                name=m["est_name"],
+                yaxis="y2",
+                mode="lines+markers+text",
+                text=filtered_df[m["pct_col"]].round(2).astype(str) + "%",
+                textposition="top center",
+                line=dict(color="rgba(246, 78, 139, 0.8)", width=3),
+            )
+        )
+
+        # Update layout
+        fig.update_layout(
+            title=m["title"],
+            xaxis_title="Fiscal Year",
+            yaxis_title="Amount (Billions VND)",
+            hovermode="x unified",
+            yaxis2=dict(title="% Kế hoạch", overlaying="y", side="right"),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        )
+
+        return fig
+
+    col_1, col_2 = st.columns(2)
+
+    # Create plots using the reusable function
+    fig1 = create_comparison_plot(filtered_df, "revenue")
+    fig2 = create_comparison_plot(filtered_df, "profit")
+
+    with col_1:
+        st.plotly_chart(fig1, use_container_width=True)
+    with col_2:
+        st.plotly_chart(fig2, use_container_width=True)
+
+    st.subheader("THÔNG TIN CỔ PHIẾU")
+    company = Vnstock().stock(symbol=stock, source="TCBS").company
+    profile = company.profile()
+    profile.set_index("company_name", inplace=True)
+    st.dataframe(
+        profile.T,
+        use_container_width=True,
+    )
 
     st.divider()
     col_1, col_2 = st.columns(2)
@@ -165,33 +317,6 @@ def display_overview_market():
     plot_pie_fund(df)
 
 
-# if all_data.empty:
-#     st.warning("Không có dữ liệu hợp lệ cho các mã đã nhập.")
-# else:
-#     # --- Vẽ biểu đồ ---
-#     fig = go.Figure()
-#     for ticker in stock_by_exchange:
-#         df_plot = all_data[all_data["code"] == ticker]
-#         fig.add_trace(
-#             go.Scatter(
-#                 x=df_plot["code"], y=df_plot["netVal"], mode="lines+markers", name=ticker
-#             )
-#         )
-
-#     fig.update_layout(
-#         title=f"So sánh dòng tiền {layer} nhà đầu tư theo thời gian",
-#         xaxis_title="Thời gian",
-#         yaxis_title="Giá trị mua ròng (triệu VND)",
-#         legend_title="Mã cổ phiếu",
-#         height=600,
-#     )
-#     st.plotly_chart(fig, use_container_width=True)
-
-#     # --- Bảng dữ liệu ---
-#     with st.expander("📋 Xem dữ liệu chi tiết"):
-#         st.dataframe(all_data)
-
-
 def display_quant_analysis(stock, end_date):
     """Display market overview."""
     years = st.selectbox("Chọn số năm phân tích: ", [5, 7, 10], index=0)
@@ -226,8 +351,9 @@ def main():
     st.divider()
     st.info(
         """
-            Thông báo cập nhật 18/04/2025:
-            - Cập nhật chức năng phân tích quỹ.
+            Thông báo cập nhật 25/04/2025:
+            - Cập nhật chức năn theo dõi kế hoạch kinh doanh
+            - cập nhật chức năng phân tích mua bán chủ động
             """
     )
 

@@ -189,7 +189,7 @@ def calculate_quant_metrics(stock, end_date, years):
     return metrics_df
 
 
-def calculate_stock_metrics(df_price, df_index, df_pricing):
+def calculate_stock_metrics(stock, df_price, df_index, df_pricing):
     # Constants
     TARGET_YEAR = 2025
     SAFETY_MARGIN_THRESHOLD = 0.3
@@ -216,17 +216,17 @@ def calculate_stock_metrics(df_price, df_index, df_pricing):
         )
 
         # Create metrics dataframe
-        metrics = pd.DataFrame(
-            {
-                "Thông Số": ["Định giá", "Giá hiện tại", "Khuyến nghị", "Biên an toàn"],
-                "Giá Trị": [
-                    f"{int(target_price*1000):,} VND",
-                    f"{int(current_price*1000):,} VND",
-                    recommendation,
-                    f"{safety_margin*100:.2f}%",
-                ],
-            }
-        )
-        return st.dataframe(metrics.set_index("Thông Số"), use_container_width=True)
+        col = st.columns(5)
+        with col[0]:
+            st.metric("Cổ phiếu", stock, border=True)
+        with col[1]:
+            st.metric("Giá hiện tại", f"{int(current_price*1000):,} VND", border=True)
+        with col[2]:
+            st.metric("Định giá", f"{int(target_price*1000):,} VND", border=True)
+        with col[3]:
+            st.metric("Biên an toàn", f"{safety_margin*100:.2f}%", border=True)
+        with col[4]:
+            st.metric("Khuyến nghị", recommendation, border=True)
+
     except:
         return st.write("Không có dữ liệu")

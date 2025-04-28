@@ -18,6 +18,24 @@ API_URL_FUND = "https://api-finfo.vndirect.com.vn/v4/fund_ratios"
 API_URL_OWNERSHIP = "https://api2.simplize.vn/api/company/ownership/ownership-breakdown"
 
 
+@st.cache_data(ttl=3600)
+def get_company_plan(stock, year):
+    """Lấy thông tin chi tiết của quỹ từ API"""
+    try:
+        url = f"https://api-finfo.vndirect.com.vn/v4/company_forecast?q=code:{stock}~fiscalYear:gte:{year}&sort=fiscalYear"
+        print(url)
+        response = requests.get(url, headers=HEADERS)
+        if response.status_code == 200:
+            data = response.json()
+            return pd.DataFrame(data["data"])
+        else:
+            st.error(f"Lỗi khi lấy thông tin cổ phiếu {stock}: {response.status_code}")
+            return {}
+    except Exception as e:
+        st.error(f"Không thể kết nối đến API: {str(e)}")
+        return {}
+
+
 def fetch_cashflow_data(stock, period=30):
     today = datetime.now()
     start_date = today - timedelta(days=period)
@@ -148,8 +166,7 @@ def get_fund_data(start_date):
 
 
 @st.cache_data(ttl=600)
-def fetch_cashflow_market(ticker):
-    date = datetime.now().strftime("%Y-%m-%d")
+def fetch_cashflow_market(ticker, date=datetime.now().strftime("%Y-%m-%d")):
     url = f"https://api-finfo.vndirect.com.vn/v4/cashflow_analysis/latest?order=time&where=code:{ticker}~period:1D&filter=date:{date}"
     res = requests.get(url, headers=HEADERS)
     res.raise_for_status()

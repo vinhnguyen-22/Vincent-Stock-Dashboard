@@ -416,7 +416,7 @@ def display_fund_data():
             if "Quỹ trái phiếu" in fund_types_list:
                 fund_types_list.remove("Quỹ trái phiếu")
             fund_types = ["Tất cả"] + sorted(fund_types_list)
-            selected_fund_type = st.selectbox("Chọn loại quỹ", fund_types)
+            selected_fund_type = st.selectbox("Chọn loại quỹ", fund_types, index=1)
 
             # Lọc quỹ theo loại
             filtered_funds = (
@@ -426,15 +426,6 @@ def display_fund_data():
             )
 
             if not filtered_funds.empty:
-                # Hiển thị một searchbox để lọc quỹ
-                search_term = st.text_input("Tìm kiếm quỹ", "")
-
-                if search_term:
-                    filtered_funds = filtered_funds[
-                        filtered_funds["name"].str.contains(search_term, case=False)
-                        | filtered_funds["short_name"].str.contains(search_term, case=False)
-                    ]
-
                 if filtered_funds.empty:
                     st.warning("Không tìm thấy quỹ nào. Vui lòng thử từ khóa khác.")
                     st.stop()
@@ -864,12 +855,9 @@ def display_fund_data():
         with col1:
             # Filter theo loại quỹ
             fund_types = ["Tất cả", "Quỹ cân bằng", "Quỹ cổ phiếu"]
-            multi_fund_type = st.multiselect(
-                "Chọn loại quỹ (có thể chọn nhiều)", fund_types, default=["Tất cả"]
+            multi_fund_type = st.selectbox(
+                "Chọn loại quỹ (có thể chọn nhiều)", fund_types, index=1
             )
-
-            if "Tất cả" in multi_fund_type:
-                multi_fund_type = ["Tất cả"]
 
         with col2:
             st.info(
@@ -886,20 +874,10 @@ def display_fund_data():
             holdings_combined, industry_combined, asset_combined, failed_funds = (
                 get_all_funds_data(
                     funds_df,
-                    fund_type="Tất cả" if "Tất cả" in multi_fund_type else None,
+                    fund_type=multi_fund_type,
                     with_progress=True,
                 )
             )
-
-            # Lọc theo loại quỹ đã chọn nếu không phải "Tất cả"
-            if "Tất cả" not in multi_fund_type:
-                holdings_combined = holdings_combined[
-                    holdings_combined["fund_type"].isin(multi_fund_type)
-                ]
-                industry_combined = industry_combined[
-                    industry_combined["fund_type"].isin(multi_fund_type)
-                ]
-                asset_combined = asset_combined[asset_combined["fund_type"].isin(multi_fund_type)]
 
         if failed_funds:
             st.warning(

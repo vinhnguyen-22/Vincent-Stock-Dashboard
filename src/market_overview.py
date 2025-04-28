@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -11,6 +13,8 @@ from src.features import fetch_cashflow_market
 
 def overview_market():
     df = pd.DataFrame()
+    date = datetime.now().strftime("%Y-%m-%d")
+    date = st.date_input("Chọn ngày", date)
     exchange = st.selectbox(
         "Chọn sàn giao dịch",
         options=[
@@ -36,7 +40,7 @@ def overview_market():
     )
     df = pd.DataFrame()
     for ticker in stock_by_exchange:
-        df_cf = fetch_cashflow_market(ticker)
+        df_cf = fetch_cashflow_market(ticker, date)
         if not df_cf.empty:
             df = pd.concat([df, df_cf], ignore_index=True)
 
@@ -275,119 +279,106 @@ def overview_market():
     with tab4:
         st.header("Phân Tích Mức Độ Tập Trung Giao Dịch")
 
-        # Calculate concentration metrics
-        df["topBuySellRatio"] = df["topActiveBuyVal"] / df["topActiveSellVal"]
-        df["topBuyConcentration"] = df["topActiveBuyVal"] / df["totalVal"] * 100
-        df["topSellConcentration"] = df["topActiveSellVal"] / df["totalVal"] * 100
+        # Create analyses for all trader types
+        trader_types = ["Top", "Mid", "Bot"]
 
-        # Create a scatter plot of concentration metrics
-        fig = px.scatter(
-            df,
-            x="topBuyConcentration",
-            y="topSellConcentration",
-            size="totalVal",
-            color="netTopVal",
-            hover_name="code",
-            text="code",
-            title="Phân tích lựa chọn các nhà giao dịch hàng đầu",
-            labels={
-                "topBuyConcentration": "Top Trader Buy Concentration (%)",
-                "topSellConcentration": "Top Trader Sell Concentration (%)",
-                "totalVal": "Total Trading Value",
-                "netTopVal": "Net Top Trader Value",
-            },
-            color_continuous_scale="RdYlGn",
-            range_color=[-df["netTopVal"].abs().max(), df["netTopVal"].abs().max()],
-        )
+        for trader_type in trader_types:
+            st.subheader(f"Phân tích nhóm {trader_type}")
 
-        # Add 45-degree line (equal buy/sell concentration)
-        max_val = max(df["topBuyConcentration"].max(), df["topSellConcentration"].max())
-        fig.add_trace(
-            go.Scatter(
-                x=[0, max_val],
-                y=[0, max_val],
-                mode="lines",
-                line=dict(color="orange", width=1, dash="dash"),
-                name="Equal Concentration",
-            )
-        )
+            # Dynamic column names based on trader type
+            buy_col = f"{trader_type.lower()}ActiveBuyVal"
+            sell_col = f"{trader_type.lower()}ActiveSellVal"
+            net_col = f"net{trader_type}Val"
 
-        fig.update_traces(
-            textposition="top center", marker=dict(line=dict(width=1, color="DarkSlateGrey"))
-        )
+            # Calculate concentration metrics
+            df[f"{trader_type.lower()}BuySellRatio"] = df[buy_col] / df[sell_col]
+            df[f"{trader_type.lower()}BuyConcentration"] = df[buy_col] / df["totalVal"] * 100
+            df[f"{trader_type.lower()}SellConcentration"] = df[sell_col] / df["totalVal"] * 100
 
-        fig.update_layout(
-            xaxis_title="Top Trader Buy Concentration (%)",
-            yaxis_title="Top Trader Sell Concentration (%)",
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
-
-        # Key observations
-        st.subheader("Key Concentration Insights")
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            # Calculate average top trader concentration
-            avg_top_buy = df["topBuyConcentration"].mean()
-            avg_top_sell = df["topSellConcentration"].mean()
-
-            st.metric("Tỷ trọng mua trung bình của nhóm nhà giao dịch lớn", f"{avg_top_buy:.2f}%")
-            st.metric("Tỷ trọng bán trung bình của nhóm nhà giao dịch lớn", f"{avg_top_sell:.2f}%")
-
-            # Find most imbalanced stock (highest ratio of top buy/sell)
-            most_imbalanced = df.sort_values(by="topBuySellRatio", ascending=False).iloc[0]
-            st.metric(
-                "Most Top Buyer Dominated Stock",
-                f"{most_imbalanced['code']}",
-                f"Buy/Sell Ratio: {most_imbalanced['topBuySellRatio']:.2f}",
+            # Create a scatter plot of concentration metrics
+            fig = px.scatter(
+                df,
+                x=f"{trader_type.lower()}BuyConcentration",
+                y=f"{trader_type.lower()}SellConcentration",
+                size="totalVal",
+                color=net_col,
+                hover_name="code",
+                text="code",
+                title=f"Phân tích lựa chọn các nhà giao dịch {trader_type}",
+                labels={
+                    f"{trader_type.lower()}BuyConcentration": f"{trader_type} Trader Buy Concentration (%)",
+                    f"{trader_type.lower()}SellConcentration": f"{trader_type} Trader Sell Concentration (%)",
+                    "totalVal": "Total Trading Value",
+                    net_col: f"Net {trader_type} Trader Value",
+                },
+                color_continuous_scale="RdYlGn",
+                range_color=[-df[net_col].abs().max(), df[net_col].abs().max()],
             )
 
-        with col2:
-            # Stocks with highest top trader buy and sell participation
-            highest_top_buy = df.sort_values(by="topBuyConcentration", ascending=False).iloc[0]
-            highest_top_sell = df.sort_values(by="topSellConcentration", ascending=False).iloc[0]
-
-            st.metric(
-                "Mức độ tập trung mua cao nhất của nhà đầu tư hàng đầu",
-                f"{highest_top_buy['code']}",
-                f"{highest_top_buy['topBuyConcentration']:.2f}%",
+            # Add 45-degree line (equal buy/sell concentration)
+            max_val = max(
+                df[f"{trader_type.lower()}BuyConcentration"].max(),
+                df[f"{trader_type.lower()}SellConcentration"].max(),
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=[0, max_val],
+                    y=[0, max_val],
+                    mode="lines",
+                    line=dict(color="orange", width=1, dash="dash"),
+                    name="Equal Concentration",
+                )
             )
 
-            st.metric(
-                "Highest Top Trader Sell Concentration",
-                f"{highest_top_sell['code']}",
-                f"{highest_top_sell['topSellConcentration']:.2f}%",
+            fig.update_traces(
+                textposition="top center", marker=dict(line=dict(width=1, color="DarkSlateGrey"))
             )
 
-    # Overall market summary
-    st.header("Tổng Quan Thị Trường - " + exchange)
+            fig.update_layout(
+                xaxis_title=f"{trader_type} Trader Buy Concentration (%)",
+                yaxis_title=f"{trader_type} Trader Sell Concentration (%)",
+            )
 
-    col1, col2 = st.columns(2)
+            st.plotly_chart(fig, use_container_width=True)
 
-    with col1:
-        # Calculate total market stats
-        total_market_value = df["totalVal"].sum()
-        st.metric("Tổng Giá Trị Giao Dịch Toàn Thị Trường", f"{total_market_value:,.0f}")
+            # Key observations
+            col1, col2 = st.columns(2)
 
-        # Net market movement (sum of all net values)
-        net_market = df["netVal"].sum()
-        net_color = "green" if net_market > 0 else "red"
-        st.markdown(
-            f"<h3 style='color:{net_color}'>Net Market Value: {net_market:,.0f}</h3>",
-            unsafe_allow_html=True,
-        )
+            with col1:
+                # Calculate average trader concentration
+                avg_buy = df[f"{trader_type.lower()}BuyConcentration"].mean()
+                avg_sell = df[f"{trader_type.lower()}SellConcentration"].mean()
 
-    with col2:
-        # Show the highest net gains and losses
-        highest_gain = df.loc[df["netVal"].idxmax()]
-        highest_loss = df.loc[df["netVal"].idxmin()]
+                st.metric(f"Tỷ trọng mua trung bình của nhóm {trader_type}", f"{avg_buy:.2f}%")
+                st.metric(f"Tỷ trọng bán trung bình của nhóm {trader_type}", f"{avg_sell:.2f}%")
 
-        st.subheader("Xu hướng giao dịch nổi bật")
-        st.markdown(
-            f"**Mua Ròng Cao Nhất:** {highest_gain['code']} ({highest_gain['netVal']:,.0f})"
-        )
-        st.markdown(
-            f"**Bán Ròng Cao Nhất:** {highest_loss['code']} ({highest_loss['netVal']:,.0f})"
-        )
+                # Find most imbalanced stock
+                most_imbalanced = df.sort_values(
+                    by=f"{trader_type.lower()}BuySellRatio", ascending=False
+                ).iloc[0]
+                st.metric(
+                    f"Cổ phiếu mất cân bằng nhất của nhóm {trader_type}",
+                    f"{most_imbalanced['code']}",
+                    f"Tỷ lệ Mua/Bán: {most_imbalanced[f'{trader_type.lower()}BuySellRatio']:.2f}",
+                )
+
+            with col2:
+                # Stocks with highest trader buy and sell participation
+                highest_buy = df.sort_values(
+                    by=f"{trader_type.lower()}BuyConcentration", ascending=False
+                ).iloc[0]
+                highest_sell = df.sort_values(
+                    by=f"{trader_type.lower()}SellConcentration", ascending=False
+                ).iloc[0]
+
+                st.metric(
+                    f"Cổ phiếu được mua nhiều nhất bởi {trader_type} Trader",
+                    f"{highest_buy['code']}",
+                    f"{highest_buy[f'{trader_type.lower()}BuyConcentration']:.2f}%",
+                )
+
+                st.metric(
+                    f"Cổ phiếu bị bán nhiều nhất của {trader_type} Trader",
+                    f"{highest_sell['code']}",
+                    f"{highest_sell[f'{trader_type.lower()}SellConcentration']:.2f}%",
+                )
