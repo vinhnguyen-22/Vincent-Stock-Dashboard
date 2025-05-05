@@ -43,6 +43,7 @@ def overview_market():
         df_cf = fetch_cashflow_market(ticker, date)
         if not df_cf.empty:
             df = pd.concat([df, df_cf], ignore_index=True)
+    st.write(df)
 
     # Add title and description
     st.markdown(

@@ -57,35 +57,38 @@ def filter_components():
     stock_sets = []  # Mỗi tiêu chí lọc tạo ra một tập hợp mã cổ phiếu
 
     # Lọc theo sàn giao dịch
-    if st.checkbox("Sàn giao dịch"):
-        exchange = st.selectbox(
-            "Chọn sàn giao dịch",
-            options=[
-                # "HOSE",
-                # "HNX",
-                # "UPCOM",
-                "VN30",
-                "VN100",
-                "HNX30",
-                "VNMidCap",
-                "VNSmallCap",
-                "VNAllShare",
-                "HNXCon",
-                "HNXFin",
-                "HNXLCap",
-                "HNXMSCap",
-                "HNXMan",
-            ],
-            index=0,
-        )
-        stock_by_exchange = (
-            Vnstock().stock("ACB", source="VCI").listing.symbols_by_group(exchange).tolist()
-        )
+    exchange = st.selectbox(
+        "Chọn sàn giao dịch",
+        options=[
+            # "HOSE",
+            # "HNX",
+            # "UPCOM",
+            "VN30",
+            "VN100",
+            "HNX30",
+            "VNMidCap",
+            "VNSmallCap",
+            "VNAllShare",
+            "HNXCon",
+            "HNXFin",
+            "HNXLCap",
+            "HNXMSCap",
+            "HNXMan",
+        ],
+        index=0,
+    )
+    stock_by_exchange = (
+        Vnstock().stock("ACB", source="VCI").listing.symbols_by_group(exchange).tolist()
+    )
 
-        stock_sets.append(set(stock_by_exchange))
-
+    stock_sets.append(set(stock_by_exchange))
+    # Lọc theo ngành nghề
+    if st.checkbox("Ngành nghề", value=True):
+        stock_by_industry = filter_stocks_by_industry()
+        if stock_by_industry:
+            stock_sets.append(set(stock_by_industry))
     # Lọc theo vốn hóa và GTNN
-    if st.checkbox("Lọc cổ phiếu theo vốn hóa và GTNN mua ròng"):
+    if st.checkbox("Lọc cổ phiếu theo vốn hóa và GTNN mua ròng", value=True):
         st.info(
             "Chọn các tiêu chí để lọc cổ phiếu. Các cổ phiếu sẽ được lọc dựa trên vốn hóa thị trường và GTNN mua ròng 20 ngày."
         )
@@ -105,12 +108,6 @@ def filter_components():
         if stock_by_filter is not None and not stock_by_filter.empty:
             stock_sets.append(set(stock_by_filter["code"].tolist()))
 
-    # Lọc theo ngành nghề
-    if st.checkbox("Ngành nghề"):
-        stock_by_industry = filter_stocks_by_industry()
-        if stock_by_industry:
-            stock_sets.append(set(stock_by_industry))
-
     # Kết hợp kết quả lọc
     if stock_sets:
         filtered_stocks = set.intersection(*stock_sets)  # lấy giao của tất cả tập con
@@ -121,54 +118,53 @@ def filter_components():
 
 def filter_by_ownerratio(stocks, end_date):
     """Filter stocks based on foreign ownership ratio and show trend."""
-    if st.button("Lọc cổ phiếu có tỷ trọng sở hữu nước ngoài cao nhất"):
 
-        start_date = end_date - timedelta(days=30)
-        stocks_data = {}
+    start_date = end_date - timedelta(days=30)
+    stocks_data = {}
 
-        for symbol in stocks:
-            foreign = foreigner_trading_stock(
-                symbol, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
-            ).sort_index(ascending=False)
-            foreign.ffill(inplace=True)
+    for symbol in stocks:
+        foreign = foreigner_trading_stock(
+            symbol, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
+        ).sort_index(ascending=False)
+        foreign.ffill(inplace=True)
 
-            if foreign is not None and not foreign.empty:
-                try:
-                    curr = foreign["currentRoom"].iloc[-1]
-                    total = foreign["totalRoom"].iloc[-1]
-                    if total > 0:
-                        ownership_ratio = round((total - curr) / total * 100, 2)
+        if foreign is not None and not foreign.empty:
+            try:
+                curr = foreign["currentRoom"].iloc[-1]
+                total = foreign["totalRoom"].iloc[-1]
+                if total > 0:
+                    ownership_ratio = round((total - curr) / total * 100, 2)
 
-                        trend_series = (
-                            (foreign["totalRoom"] - foreign["currentRoom"])
-                            / foreign["totalRoom"]
-                            * 100
-                        ).fillna(0)
-                        trend = [round(val, 2) for val in trend_series.tolist()]
+                    trend_series = (
+                        (foreign["totalRoom"] - foreign["currentRoom"])
+                        / foreign["totalRoom"]
+                        * 100
+                    ).fillna(0)
+                    trend = [round(val, 2) for val in trend_series.tolist()]
 
-                        stocks_data[symbol] = {"Ownership Ratio": ownership_ratio, "lines": trend}
-                except Exception as e:
-                    st.error(f"Lỗi xử lý dữ liệu cho mã {symbol}: {e}")
+                    stocks_data[symbol] = {"Ownership Ratio": ownership_ratio, "lines": trend}
+            except Exception as e:
+                st.error(f"Lỗi xử lý dữ liệu cho mã {symbol}: {e}")
 
-        df_result = (
-            pd.DataFrame.from_dict(stocks_data, orient="index")
-            .sort_values(by="Ownership Ratio", ascending=False)
-            .reset_index()
-            .rename(columns={"index": "Mã cổ phiếu"})
-        )
+    df_result = (
+        pd.DataFrame.from_dict(stocks_data, orient="index")
+        .sort_values(by="Ownership Ratio", ascending=False)
+        .reset_index()
+        .rename(columns={"index": "Mã cổ phiếu"})
+    )
 
-        st.data_editor(
-            df_result,
-            column_config={
-                "lines": st.column_config.LineChartColumn(
-                    "Xu hướng sở hữu (%) 30 ngày",
-                    width="medium",
-                )
-            },
-            use_container_width=True,
-        )
+    st.data_editor(
+        df_result,
+        column_config={
+            "lines": st.column_config.LineChartColumn(
+                "Xu hướng sở hữu (%) 30 ngày",
+                width="medium",
+            )
+        },
+        use_container_width=True,
+    )
 
-        return df_result
+    return df_result
 
 
 def filter_stocks_by_industry():
@@ -210,33 +206,37 @@ def filter_by_pricing_stock(stocks, end_date):
     start_date = end_date - timedelta(days=90)
     data = []
 
-    if st.button("Lọc cổ phiếu theo định giá"):
-        for stock in stocks:
-            df_pricing = get_firm_pricing(stock, start_date.strftime("%Y-%m-%d"))
-            if df_pricing is not None and not df_pricing.empty:
-                target_price = df_pricing["targetPrice"].astype(float).mean()
-                close_price = get_stock_price(
-                    stock,
-                    (end_date - timedelta(days=3)).strftime("%Y-%m-%d"),
-                    end_date.strftime("%Y-%m-%d"),
+    for stock in stocks:
+        df_pricing = get_firm_pricing(stock, start_date.strftime("%Y-%m-%d"))
+        if df_pricing is not None and not df_pricing.empty:
+            target_price = df_pricing["targetPrice"].astype(float).mean()
+            close_price = get_stock_price(
+                stock,
+                (end_date - timedelta(days=3)).strftime("%Y-%m-%d"),
+                end_date.strftime("%Y-%m-%d"),
+            )
+            if not close_price.empty:
+                close_price_value = close_price["close"].iloc[-1]
+                safety_margin = (target_price - close_price_value) / target_price * 100
+                data.append(
+                    {
+                        "Stock": stock,
+                        "Target Price": f"{target_price * 1000:,.0f}",
+                        "Close Price": f"{close_price_value * 1000:,.0f}",
+                        "Safety Margin": round(safety_margin, 2),
+                    }
                 )
-                if not close_price.empty:
-                    close_price_value = close_price["close"].iloc[-1]
-                    safety_margin = round(
-                        (target_price - close_price_value) / target_price * 100, 2
-                    )
-                    data.append(
-                        {
-                            "Stock": stock,
-                            "Target Price": target_price,
-                            "Close Price": close_price_value,
-                            "Safety Margin": safety_margin,
-                        }
-                    )
-
-    if data:
-        df_safety = pd.DataFrame(data).sort_values(by="Safety Margin", ascending=False)
-        st.dataframe(df_safety)
+        if data:
+            df_safety = pd.DataFrame(data).sort_values(by="Safety Margin", ascending=False)
+            st.dataframe(
+                df_safety.style.background_gradient(
+                    subset=["Safety Margin"],
+                    cmap="RdYlGn",
+                    vmin=-50,
+                    vmax=50,
+                ),
+                use_container_width=True,
+            )
     else:
         st.warning("No pricing data available.")
 
@@ -266,8 +266,8 @@ def plot_risk_metrics_radar(metrics_df):
 
 
 # === Risk profile weights ===
-def get_risk_weights(profile="Moderate"):
-    if profile == "Conservative":
+def get_risk_weights(profile="Cân bằng"):
+    if profile == "Phòng thủ":
         return {
             "Annual Return": 0.1,
             "Sharpe Ratio": 0.15,
@@ -277,7 +277,7 @@ def get_risk_weights(profile="Moderate"):
             "Max Drawdown": 0.1,
             "Calmar Ratio": 0.1,
         }
-    elif profile == "Aggressive":
+    elif profile == "Cân bằng":
         return {
             "Annual Return": 0.25,
             "Sharpe Ratio": 0.2,
@@ -343,7 +343,7 @@ def plot_risk_metrics_radar(metrics_df):
 
 
 # === Main analyzer ===
-def run_quant_analyzer(stocks, start_date, end_date, risk_profile="Moderate"):
+def run_quant_analyzer(stocks, start_date, end_date, risk_profile="Cân bằng"):
 
     weights = get_risk_weights(risk_profile)
     df_stocks = get_port_price(
@@ -375,13 +375,6 @@ def run_quant_analyzer(stocks, start_date, end_date, risk_profile="Moderate"):
         asc = col in reverse_metrics
         rank_df[col] = rank_df[col].rank(ascending=asc)
 
-    fig_rank = px.imshow(
-        rank_df,
-        color_continuous_scale="blues",
-        text_auto=True,
-        labels=dict(x="Mã cổ phiếu", y="Chỉ số", color="Thứ hạng"),
-        title="Thứ hạng (1 = tốt nhất)",
-    )
     cumulative_returns = (1 + returns).cumprod()
     fig_yield = go.Figure()
     colors = px.colors.qualitative.Set3
@@ -424,7 +417,13 @@ def run_quant_analyzer(stocks, start_date, end_date, risk_profile="Moderate"):
     with tab2:
         st.plotly_chart(fig_yield, use_container_width=True)
     with tab3:
-        st.plotly_chart(fig_rank, use_container_width=True)
+        st.dataframe(
+            rank_df.style.background_gradient(
+                cmap="Blues_r", vmin=1, vmax=len(rank_df), axis=None
+            ),
+            use_container_width=True,
+            height=400,
+        )
 
     best_stock = metrics_df.index[0]
     st.success(
@@ -434,18 +433,8 @@ def run_quant_analyzer(stocks, start_date, end_date, risk_profile="Moderate"):
     return metrics_df
 
 
-def filter_by_quantitative(stocks, end_date, years):
+def filter_by_quantitative(stocks, end_date, years, risk_profile):
     """Filter stocks using quantitative analysis."""
-    risk_profile = st.selectbox(
-        "🎯 Khẩu vị đầu tư của bạn là gì?", ["Conservative", "Moderate", "Aggressive"]
-    )
-    st.info(
-        {
-            "Conservative": "Bạn ưu tiên an toàn vốn và ổn định hơn là lợi nhuận cao.",
-            "Moderate": "Bạn muốn cân bằng giữa rủi ro và hiệu suất đầu tư.",
-            "Aggressive": "Bạn chấp nhận rủi ro cao để tìm kiếm tăng trưởng dài hạn.",
-        }[risk_profile]
-    )
     if st.button("So sánh các cổ phiếu "):
         start_date = end_date - timedelta(days=365 * years)
         run_quant_analyzer(stocks, start_date, end_date, risk_profile)
