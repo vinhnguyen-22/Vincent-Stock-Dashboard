@@ -226,17 +226,17 @@ def filter_by_pricing_stock(stocks, end_date):
                         "Safety Margin": round(safety_margin, 2),
                     }
                 )
-        if data:
-            df_safety = pd.DataFrame(data).sort_values(by="Safety Margin", ascending=False)
-            st.dataframe(
-                df_safety.style.background_gradient(
-                    subset=["Safety Margin"],
-                    cmap="RdYlGn",
-                    vmin=-50,
-                    vmax=50,
-                ),
-                use_container_width=True,
-            )
+    if data:
+        df_safety = pd.DataFrame(data).sort_values(by="Safety Margin", ascending=False)
+        st.dataframe(
+            df_safety.style.background_gradient(
+                subset=["Safety Margin"],
+                cmap="RdYlGn",
+                vmin=-50,
+                vmax=50,
+            ),
+            use_container_width=True,
+        )
     else:
         st.warning("No pricing data available.")
 
