@@ -168,6 +168,7 @@ def get_fund_data(start_date):
 @st.cache_data(ttl=600)
 def fetch_cashflow_market(ticker, date=datetime.now().strftime("%Y-%m-%d")):
     url = f"https://api-finfo.vndirect.com.vn/v4/cashflow_analysis/latest?order=time&where=code:{ticker}~period:1D&filter=date:{date}"
+    print(url)
     res = requests.get(url, headers=HEADERS)
     res.raise_for_status()
     data = res.json()

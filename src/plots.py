@@ -142,6 +142,7 @@ def plot_foreign_trading(stock, start_date, end_date):
             yaxis2=dict(title="Foreigner ownership", overlaying="y", side="right", range=[0, 100]),
             template="plotly_white",
             hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
             margin=dict(l=40, r=40, t=40, b=40),
         )
 
@@ -173,6 +174,7 @@ def plot_proprietary_trading(stock, start_date, end_date):
             xaxis_title="",
             yaxis_title="Giá trị giao dịch",
             template="plotly_white",
+            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
             hovermode="x unified",
             margin=dict(l=40, r=40, t=40, b=40),
         )

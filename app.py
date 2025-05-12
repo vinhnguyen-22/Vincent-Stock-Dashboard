@@ -32,6 +32,7 @@ from src.plots import (
     plot_proprietary_trading,
 )
 from src.quant_profile import calculate_quant_metrics
+from src.stock_health import display_dupont_analysis, display_stock_score
 from src.stock_profile import company_profile
 
 load_dotenv()
@@ -56,6 +57,11 @@ def configure_streamlit():
 def get_sidebar_inputs():
     """Get user inputs from the sidebar."""
     with st.sidebar:
+        st.image(
+            "./logo.png",
+            width=200,
+        )
+
         st.header("📃 Chọn trang")
         page = st.radio(
             "",
@@ -107,7 +113,7 @@ def display_cashflow_analysis(stock, df_price, period):
 
 def display_trading_analysis(stock, df_price, df_index, start_date, end_date):
     """Display trading analysis for the selected stock."""
-    st.header("📈 Phân Tích Cổ Phiếu " + stock)
+    st.header("📈 PHÂN TÍCH CỔ PHIẾU " + stock)
     st.subheader("THÔNG TIN CỔ PHIẾU")
     df_pricing = get_firm_pricing(stock, "2024-01-01")
     company_profile(stock, df_price, df_pricing, start_date, end_date)
@@ -133,13 +139,13 @@ def display_trading_analysis(stock, df_price, df_index, start_date, end_date):
 
     st.divider()
     st.subheader("GIAO DỊCH CỦA TỔ CHỨC VÀ NƯỚC NGOÀI")
-    col_1, col_2 = st.columns(2)
+    col_1, col_2 = st.columns([2, 1])
     with col_1:
+        plot_foreign_trading(stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
+    with col_2:
         plot_proprietary_trading(
             stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
         )
-    with col_2:
-        plot_foreign_trading(stock, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
     st.divider()
     st.subheader("TƯƠNG QUAN GIAO DỊCH NƯỚC NGOÀI VÀ GIÁ CỔ PHIẾU")
     plot_close_price_and_ratio(
@@ -228,6 +234,9 @@ def main():
         elif page == "🔍 Bộ Lọc Cổ Phiếu":
             display_filter_stock(end_date)
         elif page == "📈 Phân Tích Cổ Phiếu":
+            display_stock_score(stock)
+            # display_dupont_analysis(stock)
+
             display_trading_analysis(stock, df_price, df_index, start_date, end_date)
         elif page == "💲 Đầu Tư Quỹ Mở":
             display_fund_data()
