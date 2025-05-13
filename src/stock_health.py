@@ -248,148 +248,124 @@ def display_dupont_analysis(stock):
         # Chuyển đổi dữ liệu về float để vẽ biểu đồ
         numeric_dupont_df = dupont_df.copy()
 
-        # Tạo biểu đồ ROE và các thành phần
-        fig1 = go.Figure()
+        # Chuyển đổi dữ liệu về float để vẽ biểu đồ
+        numeric_dupont_df = dupont_df.copy()
+        for col in [
+            "ROE",
+            "ROA",
+            "Gánh nặng thuế",
+            "Gánh nặng lãi vay",
+            "Biên lợi nhuận hoạt động",
+            "Hiệu suất sử dụng tài sản",
+            "Đòn bẩy tài chính",
+        ]:
+            numeric_dupont_df[col] = numeric_dupont_df[col].astype(float)
+
+        # Màu sắc dịu mắt hơn (pastel)
+        pastel_colors = {
+            "Gánh nặng thuế": "#8dd3c7",  # teal pastel
+            "Gánh nặng lãi vay": "#b3cde3",  # blue pastel
+            "Biên lợi nhuận hoạt động": "#bebada",  # purple pastel
+            "Hiệu suất sử dụng tài sản": "#fdb462",  # orange pastel
+            "Đòn bẩy tài chính": "#fb8072",  # red pastel
+            "ROE": "#333366",  # dark blue
+            "ROA": "#888888",  # gray
+        }
+
+        # Tạo biểu đồ: các thành phần ROE nâng cao là cột nhóm (không chồng), ROE và ROA là đường
+        fig = go.Figure()
+
+        # Thêm các thành phần ROE nâng cao (grouped bar)
+        fig.add_trace(
+            go.Bar(
+                x=numeric_dupont_df["Năm"],
+                y=numeric_dupont_df["Gánh nặng thuế"] * 100,
+                name="Gánh nặng thuế (%)",
+                marker_color=pastel_colors["Gánh nặng thuế"],
+            )
+        )
+        fig.add_trace(
+            go.Bar(
+                x=numeric_dupont_df["Năm"],
+                y=numeric_dupont_df["Gánh nặng lãi vay"] * 100,
+                name="Gánh nặng lãi vay (%)",
+                marker_color=pastel_colors["Gánh nặng lãi vay"],
+            )
+        )
+        fig.add_trace(
+            go.Bar(
+                x=numeric_dupont_df["Năm"],
+                y=numeric_dupont_df["Biên lợi nhuận hoạt động"] * 100,
+                name="Biên LN hoạt động (%)",
+                marker_color=pastel_colors["Biên lợi nhuận hoạt động"],
+            )
+        )
+        fig.add_trace(
+            go.Bar(
+                x=numeric_dupont_df["Năm"],
+                y=numeric_dupont_df["Hiệu suất sử dụng tài sản"] * 100,
+                name="Hiệu suất TS (%)",
+                marker_color=pastel_colors["Hiệu suất sử dụng tài sản"],
+            )
+        )
+        fig.add_trace(
+            go.Bar(
+                x=numeric_dupont_df["Năm"],
+                y=numeric_dupont_df["Đòn bẩy tài chính"] * 100,
+                name="Đòn bẩy TC (%)",
+                marker_color=pastel_colors["Đòn bẩy tài chính"],
+            )
+        )
 
         # Thêm đường ROE
-        fig1.add_trace(
+        fig.add_trace(
             go.Scatter(
                 x=numeric_dupont_df["Năm"],
                 y=numeric_dupont_df["ROE"] * 100,
                 mode="lines+markers",
                 name="ROE (%)",
-                line=dict(color="blue", width=3),
+                line=dict(color=pastel_colors["ROE"], width=3),
+                yaxis="y2",
             )
         )
 
         # Thêm đường ROA
-        fig1.add_trace(
+        fig.add_trace(
             go.Scatter(
                 x=numeric_dupont_df["Năm"],
                 y=numeric_dupont_df["ROA"] * 100,
                 mode="lines+markers",
                 name="ROA (%)",
-                line=dict(color="green", width=2),
-            )
-        )
-
-        # Cập nhật layout
-        fig1.update_layout(
-            title="Xu hướng ROE và ROA qua các năm",
-            xaxis_title="Năm",
-            yaxis_title="%",
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        )
-
-        st.plotly_chart(fig1, use_container_width=True)
-
-        # Tạo biểu đồ cho các thành phần cơ bản của DuPont
-        fig2 = go.Figure()
-
-        # Đòn bẩy tài chính (sử dụng trục y thứ hai)
-        fig2.add_trace(
-            go.Scatter(
-                x=numeric_dupont_df["Năm"],
-                y=numeric_dupont_df["Đòn bẩy tài chính"],
-                mode="lines+markers",
-                name="Đòn bẩy tài chính",
-                line=dict(color="red", width=2),
+                line=dict(color=pastel_colors["ROA"], width=3, dash="dot"),
                 yaxis="y2",
             )
         )
 
-        # Hiệu suất sử dụng tài sản (sử dụng trục y thứ hai)
-        fig2.add_trace(
-            go.Scatter(
-                x=numeric_dupont_df["Năm"],
-                y=numeric_dupont_df["Hiệu suất sử dụng tài sản"],
-                mode="lines+markers",
-                name="Hiệu suất sử dụng tài sản",
-                line=dict(color="purple", width=2),
-                yaxis="y2",
-            )
-        )
-
-        # Biên lợi nhuận ròng (sử dụng trục y thứ nhất)
-        fig2.add_trace(
-            go.Scatter(
-                x=numeric_dupont_df["Năm"],
-                y=numeric_dupont_df["Biên lợi nhuận ròng"] * 100,
-                mode="lines+markers",
-                name="Biên lợi nhuận ròng (%)",
-                line=dict(color="orange", width=2),
-                yaxis="y",
-            )
-        )
-
-        # Cập nhật layout với hai trục y
-        fig2.update_layout(
-            title="Các thành phần cơ bản của phân tích DuPont",
+        # Cập nhật layout với 2 trục y, cột dạng group
+        fig.update_layout(
+            barmode="group",
+            title="Phân tích ROE nâng cao (DuPont mở rộng) qua các năm",
             xaxis_title="Năm",
             yaxis=dict(
-                title="Biên lợi nhuận (%)",
-                tickfont=dict(color="orange"),
+                title="Thành phần ROE (%)",
+                showgrid=True,
+                zeroline=True,
             ),
             yaxis2=dict(
-                title="Tỷ số",
-                tickfont=dict(color="red"),
-                anchor="x",
+                title="ROE/ROA (%)",
                 overlaying="y",
                 side="right",
+                showgrid=False,
+                zeroline=False,
             ),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            hovermode="x unified",
         )
 
-        st.plotly_chart(fig2, use_container_width=True)
-
-        # Tạo biểu đồ cho các thành phần mở rộng của DuPont
-        fig3 = go.Figure()
-
-        # Gánh nặng thuế
-        fig3.add_trace(
-            go.Scatter(
-                x=numeric_dupont_df["Năm"],
-                y=numeric_dupont_df["Gánh nặng thuế"] * 100,
-                mode="lines+markers",
-                name="Gánh nặng thuế (%)",
-                line=dict(color="green", width=2),
-            )
-        )
-
-        # Gánh nặng lãi vay
-        fig3.add_trace(
-            go.Scatter(
-                x=numeric_dupont_df["Năm"],
-                y=numeric_dupont_df["Gánh nặng lãi vay"] * 100,
-                mode="lines+markers",
-                name="Gánh nặng lãi vay (%)",
-                line=dict(color="blue", width=2),
-            )
-        )
-
-        # Biên lợi nhuận hoạt động
-        fig3.add_trace(
-            go.Scatter(
-                x=numeric_dupont_df["Năm"],
-                y=numeric_dupont_df["Biên lợi nhuận hoạt động"] * 100,
-                mode="lines+markers",
-                name="Biên lợi nhuận hoạt động (%)",
-                line=dict(color="purple", width=2),
-            )
-        )
-
-        # Cập nhật layout
-        fig3.update_layout(
-            title="Các thành phần bổ sung trong phân tích DuPont mở rộng",
-            xaxis_title="Năm",
-            yaxis_title="%",
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        )
-
-        st.plotly_chart(fig3, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True)
 
         # Phân tích sự thay đổi của ROE qua các năm
-        st.subheader("4. Phân tích thay đổi ROE")
+        st.subheader("4. Phân tích thay đổi ROE (DuPont mở rộng)")
 
         # Chọn năm để phân tích
         years_list = sorted(dupont_df["Năm"].unique(), reverse=True)
@@ -411,47 +387,48 @@ def display_dupont_analysis(stock):
             current_year_data = dupont_df[dupont_df["Năm"] == selected_year].iloc[0]
             prev_year_data = dupont_df[dupont_df["Năm"] == prev_year].iloc[0]
 
-            # Phân tích sự thay đổi ROE
-            roe_current = current_year_data["ROE"]
-            roe_prev = prev_year_data["ROE"]
+            # DuPont mở rộng: ROE = Tax Burden × Interest Burden × Operating Margin × Asset Turnover × Equity Multiplier
+            tb_c = current_year_data["Gánh nặng thuế"]
+            tb_p = prev_year_data["Gánh nặng thuế"]
+            ib_c = current_year_data["Gánh nặng lãi vay"]
+            ib_p = prev_year_data["Gánh nặng lãi vay"]
+            om_c = current_year_data["Biên lợi nhuận hoạt động"]
+            om_p = prev_year_data["Biên lợi nhuận hoạt động"]
+            at_c = current_year_data["Hiệu suất sử dụng tài sản"]
+            at_p = prev_year_data["Hiệu suất sử dụng tài sản"]
+            em_c = current_year_data["Đòn bẩy tài chính"]
+            em_p = prev_year_data["Đòn bẩy tài chính"]
+
+            roe_current = tb_c * ib_c * om_c * at_c * em_c
+            roe_prev = tb_p * ib_p * om_p * at_p * em_p
             roe_change = roe_current - roe_prev
             roe_change_percent = (roe_change / abs(roe_prev)) * 100 if roe_prev != 0 else 0
 
-            # Tính toán ảnh hưởng của từng thành phần đến sự thay đổi ROE
-            # Cho DuPont cơ bản: ROE = NPM * AT * EM
-            npm_current = current_year_data["Biên lợi nhuận ròng"]
-            npm_prev = prev_year_data["Biên lợi nhuận ròng"]
+            # Ảnh hưởng từng thành phần (phân rã theo phương pháp logarit vi phân)
+            # ΔROE ≈ (ΔTB/TB) + (ΔIB/IB) + (ΔOM/OM) + (ΔAT/AT) + (ΔEM/EM)
+            effect_tb = (tb_c - tb_p) * ib_p * om_p * at_p * em_p
+            effect_ib = tb_c * (ib_c - ib_p) * om_p * at_p * em_p
+            effect_om = tb_c * ib_c * (om_c - om_p) * at_p * em_p
+            effect_at = tb_c * ib_c * om_c * (at_c - at_p) * em_p
+            effect_em = tb_c * ib_c * om_c * at_c * (em_c - em_p)
+            total_effect = effect_tb + effect_ib + effect_om + effect_at + effect_em
 
-            at_current = current_year_data["Hiệu suất sử dụng tài sản"]
-            at_prev = prev_year_data["Hiệu suất sử dụng tài sản"]
-
-            em_current = current_year_data["Đòn bẩy tài chính"]
-            em_prev = prev_year_data["Đòn bẩy tài chính"]
-
-            # Ảnh hưởng của biên lợi nhuận ròng
-            effect_npm = (npm_current - npm_prev) * at_prev * em_prev
-
-            # Ảnh hưởng của hiệu suất sử dụng tài sản
-            effect_at = npm_current * (at_current - at_prev) * em_prev
-
-            # Ảnh hưởng của đòn bẩy tài chính
-            effect_em = npm_current * at_current * (em_current - em_prev)
-
-            # Tổng các ảnh hưởng (có thể có chênh lệch nhỏ do làm tròn)
-            total_effect = effect_npm + effect_at + effect_em
-
-            # Tạo biểu đồ waterfall cho sự thay đổi ROE
+            # Tạo biểu đồ waterfall cho sự thay đổi ROE mở rộng
             waterfall_data = {
                 "Chỉ số": [
                     "ROE " + str(prev_year),
-                    "Biên LN ròng",
+                    "Gánh nặng thuế",
+                    "Gánh nặng lãi vay",
+                    "Biên LN hoạt động",
                     "Hiệu suất TS",
                     "Đòn bẩy TC",
                     "ROE " + str(selected_year),
                 ],
                 "Giá trị": [
                     roe_prev * 100,
-                    effect_npm * 100,
+                    effect_tb * 100,
+                    effect_ib * 100,
+                    effect_om * 100,
                     effect_at * 100,
                     effect_em * 100,
                     roe_current * 100,
@@ -460,12 +437,19 @@ def display_dupont_analysis(stock):
 
             waterfall_df = pd.DataFrame(waterfall_data)
 
-            # Tạo biểu đồ waterfall
             fig_waterfall = go.Figure(
                 go.Waterfall(
-                    name="Phân tích thay đổi ROE",
+                    name="Phân tích thay đổi ROE mở rộng",
                     orientation="v",
-                    measure=["absolute", "relative", "relative", "relative", "total"],
+                    measure=[
+                        "absolute",
+                        "relative",
+                        "relative",
+                        "relative",
+                        "relative",
+                        "relative",
+                        "total",
+                    ],
                     x=waterfall_df["Chỉ số"],
                     textposition="outside",
                     text=[f"{val:.2f}%" for val in waterfall_df["Giá trị"]],
@@ -475,7 +459,7 @@ def display_dupont_analysis(stock):
             )
 
             fig_waterfall.update_layout(
-                title=f"Phân tích thay đổi ROE từ năm {prev_year} đến năm {selected_year}",
+                title=f"Phân tích thay đổi ROE (DuPont mở rộng) từ năm {prev_year} đến năm {selected_year}",
                 showlegend=False,
             )
 
@@ -484,7 +468,7 @@ def display_dupont_analysis(stock):
             # Hiển thị bảng phân tích
             st.markdown(
                 f"""
-            ### Phân tích sự thay đổi ROE từ {prev_year} đến {selected_year}
+            ### Phân tích sự thay đổi ROE (DuPont mở rộng) từ {prev_year} đến {selected_year}
             
             - ROE năm {prev_year}: **{roe_prev*100:.2f}%**
             - ROE năm {selected_year}: **{roe_current*100:.2f}%**
@@ -492,205 +476,15 @@ def display_dupont_analysis(stock):
             
             #### Ảnh hưởng của từng thành phần:
             
-            1. **Biên lợi nhuận ròng**: {effect_npm*100:.2f}% ({effect_npm/roe_change*100:.2f}% tổng thay đổi)
-            2. **Hiệu suất sử dụng tài sản**: {effect_at*100:.2f}% ({effect_at/roe_change*100:.2f}% tổng thay đổi)
-            3. **Đòn bẩy tài chính**: {effect_em*100:.2f}% ({effect_em/roe_change*100:.2f}% tổng thay đổi)
+            1. **Gánh nặng thuế**: {effect_tb*100:.2f}% ({effect_tb/roe_change*100 if roe_change!=0 else 0:.2f}% tổng thay đổi)
+            2. **Gánh nặng lãi vay**: {effect_ib*100:.2f}% ({effect_ib/roe_change*100 if roe_change!=0 else 0:.2f}% tổng thay đổi)
+            3. **Biên lợi nhuận hoạt động**: {effect_om*100:.2f}% ({effect_om/roe_change*100 if roe_change!=0 else 0:.2f}% tổng thay đổi)
+            4. **Hiệu suất sử dụng tài sản**: {effect_at*100:.2f}% ({effect_at/roe_change*100 if roe_change!=0 else 0:.2f}% tổng thay đổi)
+            5. **Đòn bẩy tài chính**: {effect_em*100:.2f}% ({effect_em/roe_change*100 if roe_change!=0 else 0:.2f}% tổng thay đổi)
             
             > Lưu ý: Có thể có chênh lệch nhỏ do làm tròn số. Tổng ảnh hưởng: {total_effect*100:.2f}%, ROE thay đổi thực tế: {roe_change*100:.2f}%.
             """
             )
-
-        # Nhận xét và đánh giá DuPont
-        st.subheader("5. Nhận xét và đánh giá")
-
-        # Lấy dữ liệu năm gần nhất và năm liền trước
-        latest_year = dupont_df["Năm"].iloc[0]
-        prev_year = dupont_df["Năm"].iloc[1] if len(dupont_df) > 1 else None
-
-        latest_data = dupont_df[dupont_df["Năm"] == latest_year].iloc[0]
-        prev_data = dupont_df[dupont_df["Năm"] == prev_year].iloc[0] if prev_year else None
-
-        # Tính toán % thay đổi của các thành phần
-        if prev_year:
-            roe_change_pct = (
-                ((latest_data["ROE"] - prev_data["ROE"]) / abs(prev_data["ROE"])) * 100
-                if prev_data["ROE"] != 0
-                else 0
-            )
-            npm_change_pct = (
-                (
-                    (latest_data["Biên lợi nhuận ròng"] - prev_data["Biên lợi nhuận ròng"])
-                    / abs(prev_data["Biên lợi nhuận ròng"])
-                )
-                * 100
-                if prev_data["Biên lợi nhuận ròng"] != 0
-                else 0
-            )
-            at_change_pct = (
-                (
-                    (
-                        latest_data["Hiệu suất sử dụng tài sản"]
-                        - prev_data["Hiệu suất sử dụng tài sản"]
-                    )
-                    / abs(prev_data["Hiệu suất sử dụng tài sản"])
-                )
-                * 100
-                if prev_data["Hiệu suất sử dụng tài sản"] != 0
-                else 0
-            )
-            em_change_pct = (
-                (
-                    (latest_data["Đòn bẩy tài chính"] - prev_data["Đòn bẩy tài chính"])
-                    / abs(prev_data["Đòn bẩy tài chính"])
-                )
-                * 100
-                if prev_data["Đòn bẩy tài chính"] != 0
-                else 0
-            )
-
-        # Tạo đánh giá tự động
-        assessment = ""
-        if prev_year:
-            # Đánh giá ROE
-            if roe_change_pct > 10:
-                assessment += f"- **ROE tăng mạnh ({roe_change_pct:.2f}%)**: ROE năm {latest_year} là {latest_data['ROE']*100:.2f}%, tăng đáng kể so với năm {prev_year} ({prev_data['ROE']*100:.2f}%). "
-            elif roe_change_pct > 0:
-                assessment += f"- **ROE tăng nhẹ ({roe_change_pct:.2f}%)**: ROE năm {latest_year} là {latest_data['ROE']*100:.2f}%, tăng nhẹ so với năm {prev_year} ({prev_data['ROE']*100:.2f}%). "
-            elif roe_change_pct > -10:
-                assessment += f"- **ROE giảm nhẹ ({roe_change_pct:.2f}%)**: ROE năm {latest_year} là {latest_data['ROE']*100:.2f}%, giảm nhẹ so với năm {prev_year} ({prev_data['ROE']*100:.2f}%). "
-            else:
-                assessment += f"- **ROE giảm mạnh ({roe_change_pct:.2f}%)**: ROE năm {latest_year} là {latest_data['ROE']*100:.2f}%, giảm đáng kể so với năm {prev_year} ({prev_data['ROE']*100:.2f}%). "
-
-            # Đánh giá các thành phần DuPont
-            assessment += "\n\n"
-
-            # Biên lợi nhuận ròng
-            if npm_change_pct > 10:
-                assessment += f"- **Biên lợi nhuận ròng tăng mạnh ({npm_change_pct:.2f}%)**: từ {prev_data['Biên lợi nhuận ròng']*100:.2f}% lên {latest_data['Biên lợi nhuận ròng']*100:.2f}%, cho thấy công ty đã cải thiện đáng kể khả năng kiểm soát chi phí và tăng hiệu quả hoạt động.\n\n"
-            elif npm_change_pct > 0:
-                assessment += f"- **Biên lợi nhuận ròng tăng nhẹ ({npm_change_pct:.2f}%)**: từ {prev_data['Biên lợi nhuận ròng']*100:.2f}% lên {latest_data['Biên lợi nhuận ròng']*100:.2f}%, cho thấy công ty duy trì được hiệu quả kiểm soát chi phí.\n\n"
-            elif npm_change_pct > -10:
-                assessment += f"- **Biên lợi nhuận ròng giảm nhẹ ({npm_change_pct:.2f}%)**: từ {prev_data['Biên lợi nhuận ròng']*100:.2f}% xuống {latest_data['Biên lợi nhuận ròng']*100:.2f}%, cho thấy có áp lực nhẹ về chi phí hoặc giá bán.\n\n"
-            else:
-                assessment += f"- **Biên lợi nhuận ròng giảm mạnh ({npm_change_pct:.2f}%)**: từ {prev_data['Biên lợi nhuận ròng']*100:.2f}% xuống {latest_data['Biên lợi nhuận ròng']*100:.2f}%, cho thấy áp lực lớn về chi phí hoặc sự sụt giảm của giá bán.\n\n"
-
-            # Hiệu suất sử dụng tài sản
-            if at_change_pct > 10:
-                assessment += f"- **Hiệu suất sử dụng tài sản tăng mạnh ({at_change_pct:.2f}%)**: từ {prev_data['Hiệu suất sử dụng tài sản']:.2f} lên {latest_data['Hiệu suất sử dụng tài sản']:.2f}, cho thấy công ty sử dụng tài sản hiệu quả hơn để tạo doanh thu.\n\n"
-            elif at_change_pct > 0:
-                assessment += f"- **Hiệu suất sử dụng tài sản tăng nhẹ ({at_change_pct:.2f}%)**: từ {prev_data['Hiệu suất sử dụng tài sản']:.2f} lên {latest_data['Hiệu suất sử dụng tài sản']:.2f}, cho thấy công ty duy trì được hiệu quả sử dụng tài sản.\n\n"
-            elif at_change_pct > -10:
-                assessment += f"- **Hiệu suất sử dụng tài sản giảm nhẹ ({at_change_pct:.2f}%)**: từ {prev_data['Hiệu suất sử dụng tài sản']:.2f} xuống {latest_data['Hiệu suất sử dụng tài sản']:.2f}, cho thấy hiệu quả sử dụng tài sản có phần suy giảm.\n\n"
-            else:
-                assessment += f"- **Hiệu suất sử dụng tài sản giảm mạnh ({at_change_pct:.2f}%)**: từ {prev_data['Hiệu suất sử dụng tài sản']:.2f} xuống {latest_data['Hiệu suất sử dụng tài sản']:.2f}, cho thấy công ty đang gặp khó khăn trong việc tạo doanh thu từ tài sản hiện có.\n\n"
-
-            # Đòn bẩy tài chính
-            if em_change_pct > 10:
-                assessment += f"- **Đòn bẩy tài chính tăng mạnh ({em_change_pct:.2f}%)**: từ {prev_data['Đòn bẩy tài chính']:.2f} lên {latest_data['Đòn bẩy tài chính']:.2f}, cho thấy công ty đã tăng sử dụng nợ để tài trợ cho tài sản, điều này có thể làm tăng ROE nhưng cũng làm tăng rủi ro tài chính.\n\n"
-            elif em_change_pct > 0:
-                assessment += f"- **Đòn bẩy tài chính tăng nhẹ ({em_change_pct:.2f}%)**: từ {prev_data['Đòn bẩy tài chính']:.2f} lên {latest_data['Đòn bẩy tài chính']:.2f}, cho thấy công ty có sự điều chỉnh nhẹ trong cơ cấu vốn theo hướng tăng nợ.\n\n"
-            elif em_change_pct > -10:
-                assessment += f"- **Đòn bẩy tài chính giảm nhẹ ({em_change_pct:.2f}%)**: từ {prev_data['Đòn bẩy tài chính']:.2f} xuống {latest_data['Đòn bẩy tài chính']:.2f}, cho thấy công ty giảm nhẹ tỷ lệ nợ, có thể để giảm rủi ro tài chính.\n\n"
-            else:
-                assessment += f"- **Đòn bẩy tài chính giảm mạnh ({em_change_pct:.2f}%)**: từ {prev_data['Đòn bẩy tài chính']:.2f} xuống {latest_data['Đòn bẩy tài chính']:.2f}, cho thấy công ty đã giảm đáng kể việc sử dụng nợ, điều này làm giảm rủi ro tài chính nhưng cũng có thể ảnh hưởng đến ROE.\n\n"
-        else:
-            # Trường hợp chỉ có dữ liệu của 1 năm
-            assessment += f"- **ROE năm {latest_year}**: {latest_data['ROE']*100:.2f}%\n\n"
-            assessment += (
-                f"- **Biên lợi nhuận ròng**: {latest_data['Biên lợi nhuận ròng']*100:.2f}%\n\n"
-            )
-            assessment += f"- **Hiệu suất sử dụng tài sản**: {latest_data['Hiệu suất sử dụng tài sản']:.2f}\n\n"
-            assessment += f"- **Đòn bẩy tài chính**: {latest_data['Đòn bẩy tài chính']:.2f}\n\n"
-
-        # Thêm đánh giá về ROE so với ngành (giả định)
-        assessment += "### Kết luận\n\n"
-
-        if latest_data["ROE"] > 0.15:
-            assessment += "- **ROE cao**: Công ty có ROE > 15%, thể hiện khả năng sinh lời từ vốn chủ sở hữu ở mức tốt, có thể cao hơn trung bình ngành.\n\n"
-        elif latest_data["ROE"] > 0.10:
-            assessment += "- **ROE khá**: Công ty có ROE trong khoảng 10-15%, thể hiện khả năng sinh lời từ vốn chủ sở hữu ở mức khá, tương đương trung bình ngành.\n\n"
-        elif latest_data["ROE"] > 0.05:
-            assessment += "- **ROE trung bình**: Công ty có ROE trong khoảng 5-10%, thể hiện khả năng sinh lời từ vốn chủ sở hữu ở mức trung bình, có thể thấp hơn trung bình ngành.\n\n"
-        else:
-            assessment += "- **ROE thấp**: Công ty có ROE < 5%, thể hiện khả năng sinh lời từ vốn chủ sở hữu ở mức thấp, có thể đáng kể thấp hơn trung bình ngành.\n\n"
-
-        # Thêm gợi ý cải thiện ROE
-        assessment += "### Gợi ý cải thiện ROE\n\n"
-
-        # Gợi ý dựa trên biên lợi nhuận ròng
-        if latest_data["Biên lợi nhuận ròng"] < 0.05:
-            assessment += "- **Cải thiện biên lợi nhuận ròng**: Xem xét kiểm soát chặt chẽ chi phí, tăng giá bán hoặc tối ưu hóa cơ cấu sản phẩm/dịch vụ với biên lợi nhuận cao hơn.\n\n"
-
-        # Gợi ý dựa trên hiệu suất sử dụng tài sản
-        if latest_data["Hiệu suất sử dụng tài sản"] < 0.8:
-            assessment += "- **Cải thiện hiệu suất sử dụng tài sản**: Xem xét việc tăng doanh thu trên cùng một lượng tài sản, hoặc giảm/thanh lý các tài sản không hiệu quả.\n\n"
-
-        # Gợi ý dựa trên đòn bẩy tài chính
-        if latest_data["Đòn bẩy tài chính"] < 1.5:
-            assessment += "- **Xem xét cơ cấu vốn**: Có thể cân nhắc tăng đòn bẩy tài chính nếu chi phí vốn vay thấp hơn ROA, tuy nhiên cần cân nhắc rủi ro tài chính.\n\n"
-        elif latest_data["Đòn bẩy tài chính"] > 3:
-            assessment += "- **Cần thận trọng với đòn bẩy tài chính cao**: Đòn bẩy tài chính cao có thể làm tăng ROE nhưng cũng làm tăng rủi ro tài chính, đặc biệt trong điều kiện kinh tế không ổn định.\n\n"
-
-        st.markdown(assessment)
-
-        # Thêm bảng so sánh ngành (giả định)
-        st.subheader("6. So sánh với trung bình ngành (tham khảo)")
-
-        # Dữ liệu trung bình ngành (giả định)
-        industry_avg = {
-            "ROE": 0.12,
-            "Biên lợi nhuận ròng": 0.08,
-            "Hiệu suất sử dụng tài sản": 0.9,
-            "Đòn bẩy tài chính": 1.7,
-        }
-
-        # Tạo DataFrame so sánh
-        comparison_data = {
-            "Chỉ số": [
-                "ROE",
-                "Biên lợi nhuận ròng",
-                "Hiệu suất sử dụng tài sản",
-                "Đòn bẩy tài chính",
-            ],
-            "Công ty": [
-                f"{latest_data['ROE']*100:.2f}%",
-                f"{latest_data['Biên lợi nhuận ròng']*100:.2f}%",
-                f"{latest_data['Hiệu suất sử dụng tài sản']:.2f}",
-                f"{latest_data['Đòn bẩy tài chính']:.2f}",
-            ],
-            "Trung bình ngành": [
-                f"{industry_avg['ROE']*100:.2f}%",
-                f"{industry_avg['Biên lợi nhuận ròng']*100:.2f}%",
-                f"{industry_avg['Hiệu suất sử dụng tài sản']:.2f}",
-                f"{industry_avg['Đòn bẩy tài chính']:.2f}",
-            ],
-            "So với ngành": [
-                f"{(latest_data['ROE']/industry_avg['ROE']-1)*100:.2f}%",
-                f"{(latest_data['Biên lợi nhuận ròng']/industry_avg['Biên lợi nhuận ròng']-1)*100:.2f}%",
-                f"{(latest_data['Hiệu suất sử dụng tài sản']/industry_avg['Hiệu suất sử dụng tài sản']-1)*100:.2f}%",
-                f"{(latest_data['Đòn bẩy tài chính']/industry_avg['Đòn bẩy tài chính']-1)*100:.2f}%",
-            ],
-        }
-
-        comparison_df = pd.DataFrame(comparison_data)
-
-        st.dataframe(
-            comparison_df,
-            column_config={
-                "Chỉ số": st.column_config.TextColumn("Chỉ số"),
-                "Công ty": st.column_config.TextColumn("Công ty"),
-                "Trung bình ngành": st.column_config.TextColumn("Trung bình ngành"),
-                "So với ngành": st.column_config.TextColumn("% So với ngành"),
-            },
-            hide_index=True,
-            use_container_width=True,
-        )
-
-        st.markdown(
-            """
-        > **Lưu ý**: Dữ liệu trung bình ngành là giả định để minh họa. Cần sử dụng dữ liệu ngành thực tế để có đánh giá chính xác.
-        """
-        )
 
     # Load and prepare data
 
@@ -1099,39 +893,30 @@ def display_stock_score(stock):
                 """
                 )
 
-                # Calculate Altman Z-Score
-                def calculate_z_score(year_index, cf_df, is_df, bs_df):
-                    if year_index >= len(bs_df):
-                        return None
-
-                    # Extract needed values
+                def get_z_score_components(year_index, is_df, bs_df):
+                    """Extract and calculate Altman Z-Score components for a given year index."""
                     total_assets = bs_df.loc[year_index, "TOTAL ASSETS (Bn. VND)"]
                     current_assets = bs_df.loc[year_index, "CURRENT ASSETS (Bn. VND)"]
                     current_liabilities = bs_df.loc[year_index, "Current liabilities (Bn. VND)"]
                     retained_earnings = bs_df.loc[year_index, "Undistributed earnings (Bn. VND)"]
-                    ebit = is_df.loc[
-                        year_index, "Profit before tax"
-                    ]  # Using profit before tax as proxy for EBIT
+                    ebit = is_df.loc[year_index, "Profit before tax"]
                     total_liabilities = bs_df.loc[year_index, "LIABILITIES (Bn. VND)"]
-                    equity = bs_df.loc[
-                        year_index, "OWNER'S EQUITY(Bn.VND)"
-                    ]  # Using book value as proxy for market value
+                    equity = bs_df.loc[year_index, "OWNER'S EQUITY(Bn.VND)"]
                     sales = is_df.loc[year_index, "Net Sales"]
 
-                    # Calculate working capital
                     working_capital = current_assets - current_liabilities
 
-                    # Calculate ratios
+                    # Avoid division by zero
+                    if total_assets == 0 or total_liabilities == 0:
+                        return None
+
                     A = working_capital / total_assets
                     B = retained_earnings / total_assets
                     C = ebit / total_assets
-                    D = equity / total_liabilities  # Using book value as a proxy for market value
+                    D = equity / total_liabilities
                     E = sales / total_assets
 
-                    # Calculate Z-Score
-                    Z = 1.2 * A + 1.4 * B + 3.3 * C + 0.6 * D + 1.0 * E
-
-                    # Store components for breakdown
+                    z_score = 1.2 * A + 1.4 * B + 3.3 * C + 0.6 * D + 1.0 * E
                     components = {
                         "Working Capital/Total Assets": 1.2 * A,
                         "Retained Earnings/Total Assets": 1.4 * B,
@@ -1139,32 +924,71 @@ def display_stock_score(stock):
                         "Equity/Total Liabilities": 0.6 * D,
                         "Sales/Total Assets": 1.0 * E,
                     }
+                    raw_components = (A, B, C, D, E)
+                    return z_score, components, raw_components
 
-                    return Z, components
+                def diagnose_z_score_components(A, B, C, D, E):
+                    """Return list of warning messages based on Z-Score component values."""
+                    reasons = []
+                    if A < 0.1:
+                        reasons.append(
+                            "🔴 *Working Capital / Total Assets* rất thấp (<0.1): Công ty có thể gặp khó khăn thanh toán ngắn hạn, rủi ro mất khả năng thanh toán."
+                        )
+                    elif A < 0.2:
+                        reasons.append(
+                            "🟠 *Working Capital / Total Assets* thấp (<0.2): Khả năng thanh khoản yếu, cần chú ý dòng tiền hoạt động."
+                        )
+                    if B < 0.1:
+                        reasons.append(
+                            "🔴 *Retained Earnings / Total Assets* rất thấp (<0.1): Công ty chưa tích lũy được lợi nhuận, nền tảng tài chính yếu."
+                        )
+                    elif B < 0.3:
+                        reasons.append(
+                            "🟠 *Retained Earnings / Total Assets* thấp (<0.3): Lợi nhuận giữ lại chưa cao, tích lũy vốn còn hạn chế."
+                        )
+                    if C < 0.05:
+                        reasons.append(
+                            "🔴 *EBIT / Total Assets* rất thấp (<0.05): Hiệu quả sinh lời từ tài sản rất kém, rủi ro kinh doanh cao."
+                        )
+                    elif C < 0.1:
+                        reasons.append(
+                            "🟠 *EBIT / Total Assets* thấp (<0.1): Hiệu quả sử dụng tài sản còn hạn chế."
+                        )
+                    if D < 0.3:
+                        reasons.append(
+                            "🔴 *Equity / Total Liabilities* rất thấp (<0.3): Đòn bẩy tài chính rất cao, rủi ro nợ lớn."
+                        )
+                    elif D < 0.6:
+                        reasons.append(
+                            "🟠 *Equity / Total Liabilities* thấp (<0.6): Đòn bẩy tài chính cao, cần kiểm soát rủi ro nợ vay."
+                        )
+                    if E < 0.7:
+                        reasons.append(
+                            "🟠 *Sales / Total Assets* thấp (<0.7): Hiệu quả sử dụng tài sản tạo doanh thu còn thấp."
+                        )
+                    elif E > 1.5:
+                        reasons.append(
+                            "🟢 *Sales / Total Assets* rất cao (>1.5): Công ty sử dụng tài sản hiệu quả để tạo doanh thu."
+                        )
+                    return reasons
 
                 # Calculate Z-Score for all years
-                z_scores = []
-                z_components = []
-                z_years = []
-
+                z_scores, z_components, z_years, z_raws = [], [], [], []
                 for i in range(len(is_df)):
                     year = is_df.loc[i, "yearReport"]
-                    result = calculate_z_score(i, cf_df, is_df, bs_df)
-
+                    result = get_z_score_components(i, is_df, bs_df)
                     if result is not None:
-                        z, components = result
+                        z, comp, raw = result
                         z_scores.append(z)
-                        z_components.append(components)
+                        z_components.append(comp)
                         z_years.append(year)
+                        z_raws.append(raw)
 
-                # Create Z-score visualization
-                fig_z_score = go.Figure()
-
-                # Color based on risk zones
+                # Visualization
                 colors = [
                     "red" if z < 1.81 else "yellow" if z < 2.99 else "green" for z in z_scores
                 ]
-
+                fig_z_score = go.Figure()
                 fig_z_score.add_trace(
                     go.Scatter(
                         x=z_years,
@@ -1176,7 +1000,6 @@ def display_stock_score(stock):
                         hoverinfo="text",
                     )
                 )
-
                 fig_z_score.update_layout(
                     title="Altman Z-Score by Year",
                     xaxis_title="Year",
@@ -1238,7 +1061,6 @@ def display_stock_score(stock):
                         ),
                     ],
                 )
-
                 st.plotly_chart(fig_z_score, use_container_width=True)
 
                 # Z-score breakdown for selected year
@@ -1246,32 +1068,103 @@ def display_stock_score(stock):
                     "Select Year for Z-Score Components:",
                     options=list(range(len(z_years))),
                     format_func=lambda x: z_years[x],
-                    index=len(z_years) - 1,  # Default to the most recent year
+                    index=len(z_years) - 1,
                 )
 
                 if selected_z_year_index is not None:
                     selected_components = z_components[selected_z_year_index]
                     selected_z_year = z_years[selected_z_year_index]
                     selected_z = z_scores[selected_z_year_index]
+                    selected_raw = z_raws[selected_z_year_index]
 
                     st.write(f"### Z-Score Breakdown for {selected_z_year}: {selected_z:.2f}")
 
-                    component_df = pd.DataFrame(
-                        {
-                            "Component": list(selected_components.keys()),
-                            "Value": list(selected_components.values()),
-                        }
-                    )
+                    # Compare with previous year if possible
+                    if selected_z_year_index > 0:
+                        prev_components = z_components[selected_z_year_index - 1]
+                        prev_z_year = z_years[selected_z_year_index - 1]
+                        prev_z = z_scores[selected_z_year_index - 1]
 
-                    fig_z_breakdown = px.bar(
-                        component_df,
-                        x="Component",
-                        y="Value",
-                        color="Value",
-                        color_continuous_scale="RdYlGn",
-                    )
+                        compare_df = pd.DataFrame(
+                            {
+                                "Component": list(selected_components.keys()),
+                                f"{selected_z_year}": list(selected_components.values()),
+                                f"{prev_z_year}": list(prev_components.values()),
+                            }
+                        )
+                        compare_df["Change"] = (
+                            (compare_df[f"{selected_z_year}"] - compare_df[f"{prev_z_year}"])
+                            / compare_df[f"{prev_z_year}"].replace(0, np.nan)
+                        ) * 100
 
-                    st.plotly_chart(fig_z_breakdown, use_container_width=True)
+                        st.dataframe(
+                            compare_df.style.format(
+                                {
+                                    f"{selected_z_year}": "{:.3f}",
+                                    f"{prev_z_year}": "{:.3f}",
+                                    "Change": "{:+.2f}%",
+                                }
+                            ),
+                            use_container_width=True,
+                        )
+
+                        fig_z_breakdown = px.bar(
+                            compare_df,
+                            x="Component",
+                            y=f"{selected_z_year}",
+                            color=f"{selected_z_year}",
+                            color_continuous_scale="RdYlGn",
+                        )
+                        fig_z_breakdown.update_layout(
+                            title=f"Z-Score Components for {selected_z_year}",
+                            xaxis_title="Component",
+                            yaxis_title="Value",
+                        )
+                        st.plotly_chart(fig_z_breakdown, use_container_width=True)
+
+                        fig_z_change = px.bar(
+                            compare_df,
+                            x="Component",
+                            y="Change",
+                            color="Change",
+                            color_continuous_scale="RdYlGn",
+                        )
+                        fig_z_change.update_layout(
+                            title=f"Change in Z-Score Components: {prev_z_year} → {selected_z_year}",
+                            xaxis_title="Component",
+                            yaxis_title="Change (%)",
+                        )
+                        st.plotly_chart(fig_z_change, use_container_width=True)
+
+                        st.markdown(
+                            f"**Z-Score {prev_z_year}: {prev_z:.2f} → {selected_z_year}: {selected_z:.2f} ({selected_z - prev_z:+.2f})**"
+                        )
+                    else:
+                        component_df = pd.DataFrame(
+                            {
+                                "Component": list(selected_components.keys()),
+                                "Value": list(selected_components.values()),
+                            }
+                        )
+                        fig_z_breakdown = px.bar(
+                            component_df,
+                            x="Component",
+                            y="Value",
+                            color="Value",
+                            color_continuous_scale="RdYlGn",
+                        )
+                        st.plotly_chart(fig_z_breakdown, use_container_width=True)
+
+                    # Diagnosis
+                    reasons = diagnose_z_score_components(*selected_raw)
+                    if reasons:
+                        st.markdown("#### Giải thích chi tiết các điểm yếu theo Altman Z-Score:")
+                        for r in reasons:
+                            st.markdown(f"- {r}")
+                    else:
+                        st.markdown(
+                            "✅ Không có dấu hiệu cảnh báo lớn theo các thành phần Z-Score."
+                        )
 
             with tab4:
                 st.header("Beneish M-Score Analysis")
@@ -1358,14 +1251,25 @@ def display_stock_score(stock):
                     depi = (prev_depreciation / prev_fixed_assets) / (depreciation / fixed_assets)
 
                     # Calculate SGAI - SG&A Expense Index
-                    sga = (
-                        is_df.loc[year_index, "Selling Expenses"]
-                        + is_df.loc[year_index, "General & Admin Expenses"]
+                    # Handle missing columns for SGA calculation
+                    selling_expenses_col = (
+                        "Selling Expenses" if "Selling Expenses" in is_df.columns else None
                     )
-                    prev_sga = (
-                        is_df.loc[year_index - 1, "Selling Expenses"]
-                        + is_df.loc[year_index - 1, "General & Admin Expenses"]
+                    admin_expenses_col = (
+                        "General & Admin Expenses"
+                        if "General & Admin Expenses" in is_df.columns
+                        else None
                     )
+
+                    def get_expense(df, idx, col):
+                        return df.loc[idx, col] if col and col in df.columns else 0
+
+                    sga = get_expense(is_df, year_index, selling_expenses_col) + get_expense(
+                        is_df, year_index, admin_expenses_col
+                    )
+                    prev_sga = get_expense(
+                        is_df, year_index - 1, selling_expenses_col
+                    ) + get_expense(is_df, year_index - 1, admin_expenses_col)
 
                     if prev_sga == 0 or prev_sales == 0:
                         return None, None
@@ -1556,6 +1460,72 @@ def display_stock_score(stock):
 
                         st.plotly_chart(fig_m_breakdown, use_container_width=True)
 
+                        # Add comparison chart with previous year if possible
+                        if selected_m_year_index > 0:
+                            prev_m_components = m_components[selected_m_year_index - 1]
+                            prev_m_year = m_years[selected_m_year_index - 1]
+                            compare_df = pd.DataFrame(
+                                {
+                                    "Component": list(selected_m_components.keys()),
+                                    f"{prev_m_year}": [
+                                        prev_m_components[k] for k in selected_m_components.keys()
+                                    ],
+                                    f"{selected_m_year}": [
+                                        selected_m_components[k]
+                                        for k in selected_m_components.keys()
+                                    ],
+                                }
+                            )
+                            compare_df["Change (%)"] = (
+                                (compare_df[f"{selected_m_year}"] - compare_df[f"{prev_m_year}"])
+                                / compare_df[f"{prev_m_year}"].replace(0, np.nan)
+                            ) * 100
+
+                            fig_compare = go.Figure()
+                            fig_compare.add_trace(
+                                go.Bar(
+                                    x=compare_df["Component"],
+                                    y=compare_df[f"{prev_m_year}"],
+                                    name=f"{prev_m_year}",
+                                    marker_color="lightgray",
+                                )
+                            )
+                            fig_compare.add_trace(
+                                go.Bar(
+                                    x=compare_df["Component"],
+                                    y=compare_df[f"{selected_m_year}"],
+                                    name=f"{selected_m_year}",
+                                    marker_color="royalblue",
+                                )
+                            )
+                            fig_compare.update_layout(
+                                barmode="group",
+                                title=f"So sánh các thành phần M-Score: {prev_m_year} vs {selected_m_year}",
+                                xaxis_title="Component",
+                                yaxis_title="Value",
+                                height=400,
+                            )
+                            st.plotly_chart(fig_compare, use_container_width=True)
+
+                            # Hiển thị bảng thay đổi phần trăm
+                            st.dataframe(
+                                compare_df[
+                                    [
+                                        "Component",
+                                        f"{prev_m_year}",
+                                        f"{selected_m_year}",
+                                        "Change (%)",
+                                    ]
+                                ].style.format(
+                                    {
+                                        f"{prev_m_year}": "{:.3f}",
+                                        f"{selected_m_year}": "{:.3f}",
+                                        "Change (%)": "{:+.2f}%",
+                                    }
+                                ),
+                                use_container_width=True,
+                            )
+
                         # Add interpretation
                         st.markdown(
                             """
@@ -1570,6 +1540,52 @@ def display_stock_score(stock):
                         - **LVGI > 1.037**: Đòn bẩy tài chính tăng, rủi ro tài chính cao hơn
                         """
                         )
+
+                        # Đánh giá tự động các thành phần M-Score
+                        def beneish_component_assessment(components):
+                            notes = []
+                            if components["Days Sales in Receivables Index (DSRI)"] > 1.031:
+                                notes.append(
+                                    "- **DSRI** cao: Doanh thu chưa thu tiền tăng bất thường."
+                                )
+                            if components["Gross Margin Index (GMI)"] > 1.014:
+                                notes.append(
+                                    "- **GMI** cao: Biên lợi nhuận gộp giảm, cần chú ý chi phí/doanh thu."
+                                )
+                            if components["Asset Quality Index (AQI)"] > 1.040:
+                                notes.append(
+                                    "- **AQI** cao: Chất lượng tài sản giảm, tài sản không sinh lời tăng."
+                                )
+                            if components["Sales Growth Index (SGI)"] > 1.134:
+                                notes.append(
+                                    "- **SGI** cao: Tăng trưởng doanh thu mạnh, cần kiểm tra chất lượng tăng trưởng."
+                                )
+                            if components["Depreciation Index (DEPI)"] < 0.804:
+                                notes.append(
+                                    "- **DEPI** thấp: Tỷ lệ khấu hao giảm, có thể làm đẹp lợi nhuận."
+                                )
+                            if components["SG&A Expense Index (SGAI)"] > 1.054:
+                                notes.append(
+                                    "- **SGAI** cao: Chi phí bán hàng & quản lý tăng nhanh hơn doanh thu."
+                                )
+                            if components["Total Accruals to Total Assets (TATA)"] > 0.018:
+                                notes.append(
+                                    "- **TATA** cao: Khoản dồn tích lớn, có thể điều chỉnh lợi nhuận."
+                                )
+                            if components["Leverage Index (LVGI)"] > 1.037:
+                                notes.append(
+                                    "- **LVGI** cao: Đòn bẩy tài chính tăng, rủi ro tài chính cao hơn."
+                                )
+                            if not notes:
+                                notes.append(
+                                    "✅ Không có dấu hiệu bất thường nổi bật theo các chỉ số Beneish."
+                                )
+                            return notes
+
+                        # Hiển thị đánh giá Beneish cho năm được chọn
+                        st.markdown("#### Đánh giá nhanh các chỉ số Beneish:")
+                        for note in beneish_component_assessment(selected_m_components):
+                            st.markdown(note)
 
             with tab5:
                 st.header("DuPont Analysis")
