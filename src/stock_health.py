@@ -504,6 +504,92 @@ def load_data(stock):
     return cf_df, is_df, bs_df
 
 
+def calculate_f_score(year_index, cf_df, is_df, bs_df):
+    scores = {}
+    total_score = 0
+
+    # Check if we have sufficient data for comparison (need current and previous year)
+    if year_index < 1:
+        return None, None
+
+    # 1. Profitability
+    # ROA
+    net_profit = is_df.loc[year_index, "Net Profit For the Year"]
+    total_assets = bs_df.loc[year_index, "TOTAL ASSETS (Bn. VND)"]
+    prev_total_assets = bs_df.loc[year_index - 1, "TOTAL ASSETS (Bn. VND)"]
+
+    roa = net_profit / total_assets
+    scores["ROA > 0"] = 1 if roa > 0 else 0
+    total_score += scores["ROA > 0"]
+
+    # ROA Change
+    prev_net_profit = is_df.loc[year_index - 1, "Net Profit For the Year"]
+    prev_roa = prev_net_profit / prev_total_assets
+    scores["ROA Increasing"] = 1 if roa > prev_roa else 0
+    total_score += scores["ROA Increasing"]
+
+    # Operating Cash Flow
+    op_cash_flow = cf_df.loc[year_index, "Net cash inflows/outflows from operating activities"]
+    scores["Operating CF > 0"] = 1 if op_cash_flow > 0 else 0
+    total_score += scores["Operating CF > 0"]
+
+    # Cash Flow vs ROA
+    cash_flow_ratio = op_cash_flow / total_assets
+    scores["CF > ROA"] = 1 if cash_flow_ratio > roa else 0
+    total_score += scores["CF > ROA"]
+
+    # 2. Leverage, Liquidity, and Source of Funds
+    # Long-term Debt Ratio
+    lt_debt = bs_df.loc[year_index, "Long-term liabilities (Bn. VND)"]
+    lt_debt_ratio = lt_debt / total_assets
+
+    prev_lt_debt = bs_df.loc[year_index - 1, "Long-term liabilities (Bn. VND)"]
+    prev_lt_debt_ratio = prev_lt_debt / prev_total_assets
+
+    scores["Decreasing LT Debt Ratio"] = 1 if lt_debt_ratio < prev_lt_debt_ratio else 0
+    total_score += scores["Decreasing LT Debt Ratio"]
+
+    # Current Ratio
+    current_assets = bs_df.loc[year_index, "CURRENT ASSETS (Bn. VND)"]
+    current_liabilities = bs_df.loc[year_index, "Current liabilities (Bn. VND)"]
+    current_ratio = current_assets / current_liabilities
+
+    prev_current_assets = bs_df.loc[year_index - 1, "CURRENT ASSETS (Bn. VND)"]
+    prev_current_liabilities = bs_df.loc[year_index - 1, "Current liabilities (Bn. VND)"]
+    prev_current_ratio = prev_current_assets / prev_current_liabilities
+
+    scores["Increasing Current Ratio"] = 1 if current_ratio > prev_current_ratio else 0
+    total_score += scores["Increasing Current Ratio"]
+
+    # Check if new shares were issued
+    shares = bs_df.loc[year_index, "Common shares (Bn. VND)"]
+    prev_shares = bs_df.loc[year_index - 1, "Common shares (Bn. VND)"]
+    scores["No New Shares"] = 1 if shares <= prev_shares else 0
+    total_score += scores["No New Shares"]
+
+    # 3. Operating Efficiency
+    # Gross Margin
+    gross_profit = is_df.loc[year_index, "Gross Profit"]
+    net_sales = is_df.loc[year_index, "Net Sales"]
+    gross_margin = gross_profit / net_sales
+
+    prev_gross_profit = is_df.loc[year_index - 1, "Gross Profit"]
+    prev_net_sales = is_df.loc[year_index - 1, "Net Sales"]
+    prev_gross_margin = prev_gross_profit / prev_net_sales
+
+    scores["Increasing Gross Margin"] = 1 if gross_margin > prev_gross_margin else 0
+    total_score += scores["Increasing Gross Margin"]
+
+    # Asset Turnover
+    asset_turnover = net_sales / total_assets
+    prev_asset_turnover = prev_net_sales / prev_total_assets
+
+    scores["Increasing Asset Turnover"] = 1 if asset_turnover > prev_asset_turnover else 0
+    total_score += scores["Increasing Asset Turnover"]
+
+    return total_score, scores
+
+
 def display_stock_score(stock):
     if stock in [
         "ABB",
@@ -551,13 +637,12 @@ def display_stock_score(stock):
             cf_df, is_df, bs_df = load_data(stock)
 
             # Create tabs for the different sections
-            tab1, tab2, tab3, tab4, tab5 = st.tabs(
+            tab1, tab2, tab3, tab4 = st.tabs(
                 [
                     "Overview",
                     "Piotroski F-Score",
                     "Altman Z-Score",
                     "Beneish M-Score",
-                    "DuPont Analysis",
                 ]
             )
 
@@ -663,104 +748,6 @@ def display_stock_score(stock):
                 """
                 )
 
-                # Calculate Piotroski F-Score
-                def calculate_f_score(year_index, cf_df, is_df, bs_df):
-                    scores = {}
-                    total_score = 0
-
-                    # Check if we have sufficient data for comparison (need current and previous year)
-                    if year_index < 1:
-                        return None, None
-
-                    # 1. Profitability
-                    # ROA
-                    net_profit = is_df.loc[year_index, "Net Profit For the Year"]
-                    total_assets = bs_df.loc[year_index, "TOTAL ASSETS (Bn. VND)"]
-                    prev_total_assets = bs_df.loc[year_index - 1, "TOTAL ASSETS (Bn. VND)"]
-
-                    roa = net_profit / total_assets
-                    scores["ROA > 0"] = 1 if roa > 0 else 0
-                    total_score += scores["ROA > 0"]
-
-                    # ROA Change
-                    prev_net_profit = is_df.loc[year_index - 1, "Net Profit For the Year"]
-                    prev_roa = prev_net_profit / prev_total_assets
-                    scores["ROA Increasing"] = 1 if roa > prev_roa else 0
-                    total_score += scores["ROA Increasing"]
-
-                    # Operating Cash Flow
-                    op_cash_flow = cf_df.loc[
-                        year_index, "Net cash inflows/outflows from operating activities"
-                    ]
-                    scores["Operating CF > 0"] = 1 if op_cash_flow > 0 else 0
-                    total_score += scores["Operating CF > 0"]
-
-                    # Cash Flow vs ROA
-                    cash_flow_ratio = op_cash_flow / total_assets
-                    scores["CF > ROA"] = 1 if cash_flow_ratio > roa else 0
-                    total_score += scores["CF > ROA"]
-
-                    # 2. Leverage, Liquidity, and Source of Funds
-                    # Long-term Debt Ratio
-                    lt_debt = bs_df.loc[year_index, "Long-term liabilities (Bn. VND)"]
-                    lt_debt_ratio = lt_debt / total_assets
-
-                    prev_lt_debt = bs_df.loc[year_index - 1, "Long-term liabilities (Bn. VND)"]
-                    prev_lt_debt_ratio = prev_lt_debt / prev_total_assets
-
-                    scores["Decreasing LT Debt Ratio"] = (
-                        1 if lt_debt_ratio < prev_lt_debt_ratio else 0
-                    )
-                    total_score += scores["Decreasing LT Debt Ratio"]
-
-                    # Current Ratio
-                    current_assets = bs_df.loc[year_index, "CURRENT ASSETS (Bn. VND)"]
-                    current_liabilities = bs_df.loc[year_index, "Current liabilities (Bn. VND)"]
-                    current_ratio = current_assets / current_liabilities
-
-                    prev_current_assets = bs_df.loc[year_index - 1, "CURRENT ASSETS (Bn. VND)"]
-                    prev_current_liabilities = bs_df.loc[
-                        year_index - 1, "Current liabilities (Bn. VND)"
-                    ]
-                    prev_current_ratio = prev_current_assets / prev_current_liabilities
-
-                    scores["Increasing Current Ratio"] = (
-                        1 if current_ratio > prev_current_ratio else 0
-                    )
-                    total_score += scores["Increasing Current Ratio"]
-
-                    # Check if new shares were issued
-                    shares = bs_df.loc[year_index, "Common shares (Bn. VND)"]
-                    prev_shares = bs_df.loc[year_index - 1, "Common shares (Bn. VND)"]
-                    scores["No New Shares"] = 1 if shares <= prev_shares else 0
-                    total_score += scores["No New Shares"]
-
-                    # 3. Operating Efficiency
-                    # Gross Margin
-                    gross_profit = is_df.loc[year_index, "Gross Profit"]
-                    net_sales = is_df.loc[year_index, "Net Sales"]
-                    gross_margin = gross_profit / net_sales
-
-                    prev_gross_profit = is_df.loc[year_index - 1, "Gross Profit"]
-                    prev_net_sales = is_df.loc[year_index - 1, "Net Sales"]
-                    prev_gross_margin = prev_gross_profit / prev_net_sales
-
-                    scores["Increasing Gross Margin"] = (
-                        1 if gross_margin > prev_gross_margin else 0
-                    )
-                    total_score += scores["Increasing Gross Margin"]
-
-                    # Asset Turnover
-                    asset_turnover = net_sales / total_assets
-                    prev_asset_turnover = prev_net_sales / prev_total_assets
-
-                    scores["Increasing Asset Turnover"] = (
-                        1 if asset_turnover > prev_asset_turnover else 0
-                    )
-                    total_score += scores["Increasing Asset Turnover"]
-
-                    return total_score, scores
-
                 # Calculate F-Score for all applicable years
                 f_scores = []
                 f_score_details = []
@@ -851,24 +838,18 @@ def display_stock_score(stock):
                 for i, year in enumerate(recent_years):
                     data[str(year)] = [recent_details[i][c] for c in criteria]
 
-                fscore_df = pd.DataFrame(data)
-
-                # Column configs: first column is text, others are boolean (0/1)
-                column_config = {
-                    "Tiêu chí": st.column_config.TextColumn("Tiêu chí"),
-                }
-                for year in recent_years:
-                    column_config[str(year)] = st.column_config.CheckboxColumn(
-                        f"{year}",
-                        help="1: Đạt tiêu chí, 0: Không đạt",
-                    )
-
-                st.dataframe(
-                    fscore_df,
-                    column_config=column_config,
-                    hide_index=True,
-                    use_container_width=True,
-                )
+                if f_score_details:
+                    st.subheader("Đánh giá chi tiết F-Score theo từng năm")
+                    # Tạo bảng chi tiết cho tất cả các năm
+                    detail_data = []
+                    criteria = list(f_score_details[-1].keys()) if f_score_details else []
+                    for idx, year in enumerate(f_score_years):
+                        row = {"Năm": year}
+                        for crit in criteria:
+                            row[crit] = "✅" if f_score_details[idx][crit] else "❌"
+                        detail_data.append(row)
+                    detail_df = pd.DataFrame(detail_data)
+                    st.dataframe(detail_df, hide_index=True, use_container_width=True)
 
             with tab3:
                 st.header("Altman Z-Score Analysis")
@@ -988,6 +969,7 @@ def display_stock_score(stock):
                 colors = [
                     "red" if z < 1.81 else "yellow" if z < 2.99 else "green" for z in z_scores
                 ]
+
                 fig_z_score = go.Figure()
                 fig_z_score.add_trace(
                     go.Scatter(
@@ -1107,34 +1089,35 @@ def display_stock_score(stock):
                             ),
                             use_container_width=True,
                         )
-
-                        fig_z_breakdown = px.bar(
-                            compare_df,
-                            x="Component",
-                            y=f"{selected_z_year}",
-                            color=f"{selected_z_year}",
-                            color_continuous_scale="RdYlGn",
-                        )
-                        fig_z_breakdown.update_layout(
-                            title=f"Z-Score Components for {selected_z_year}",
-                            xaxis_title="Component",
-                            yaxis_title="Value",
-                        )
-                        st.plotly_chart(fig_z_breakdown, use_container_width=True)
-
-                        fig_z_change = px.bar(
-                            compare_df,
-                            x="Component",
-                            y="Change",
-                            color="Change",
-                            color_continuous_scale="RdYlGn",
-                        )
-                        fig_z_change.update_layout(
-                            title=f"Change in Z-Score Components: {prev_z_year} → {selected_z_year}",
-                            xaxis_title="Component",
-                            yaxis_title="Change (%)",
-                        )
-                        st.plotly_chart(fig_z_change, use_container_width=True)
+                        cols = st.columns(2)
+                        with cols[0]:
+                            fig_z_breakdown = px.bar(
+                                compare_df,
+                                x="Component",
+                                y=f"{selected_z_year}",
+                                color=f"{selected_z_year}",
+                                color_continuous_scale="RdYlGn",
+                            )
+                            fig_z_breakdown.update_layout(
+                                title=f"Z-Score Components for {selected_z_year}",
+                                xaxis_title="Component",
+                                yaxis_title="Value",
+                            )
+                            st.plotly_chart(fig_z_breakdown, use_container_width=True)
+                        with cols[1]:
+                            fig_z_change = px.bar(
+                                compare_df,
+                                x="Component",
+                                y="Change",
+                                color="Change",
+                                color_continuous_scale="RdYlGn",
+                            )
+                            fig_z_change.update_layout(
+                                title=f"Change in Z-Score Components: {prev_z_year} → {selected_z_year}",
+                                xaxis_title="Component",
+                                yaxis_title="Change (%)",
+                            )
+                            st.plotly_chart(fig_z_change, use_container_width=True)
 
                         st.markdown(
                             f"**Z-Score {prev_z_year}: {prev_z:.2f} → {selected_z_year}: {selected_z:.2f} ({selected_z - prev_z:+.2f})**"
@@ -1457,74 +1440,79 @@ def display_stock_score(stock):
                             yaxis_title="Value",
                             height=500,
                         )
-
-                        st.plotly_chart(fig_m_breakdown, use_container_width=True)
-
-                        # Add comparison chart with previous year if possible
-                        if selected_m_year_index > 0:
-                            prev_m_components = m_components[selected_m_year_index - 1]
-                            prev_m_year = m_years[selected_m_year_index - 1]
-                            compare_df = pd.DataFrame(
-                                {
-                                    "Component": list(selected_m_components.keys()),
-                                    f"{prev_m_year}": [
-                                        prev_m_components[k] for k in selected_m_components.keys()
-                                    ],
-                                    f"{selected_m_year}": [
-                                        selected_m_components[k]
-                                        for k in selected_m_components.keys()
-                                    ],
-                                }
-                            )
-                            compare_df["Change (%)"] = (
-                                (compare_df[f"{selected_m_year}"] - compare_df[f"{prev_m_year}"])
-                                / compare_df[f"{prev_m_year}"].replace(0, np.nan)
-                            ) * 100
-
-                            fig_compare = go.Figure()
-                            fig_compare.add_trace(
-                                go.Bar(
-                                    x=compare_df["Component"],
-                                    y=compare_df[f"{prev_m_year}"],
-                                    name=f"{prev_m_year}",
-                                    marker_color="lightgray",
-                                )
-                            )
-                            fig_compare.add_trace(
-                                go.Bar(
-                                    x=compare_df["Component"],
-                                    y=compare_df[f"{selected_m_year}"],
-                                    name=f"{selected_m_year}",
-                                    marker_color="royalblue",
-                                )
-                            )
-                            fig_compare.update_layout(
-                                barmode="group",
-                                title=f"So sánh các thành phần M-Score: {prev_m_year} vs {selected_m_year}",
-                                xaxis_title="Component",
-                                yaxis_title="Value",
-                                height=400,
-                            )
-                            st.plotly_chart(fig_compare, use_container_width=True)
-
-                            # Hiển thị bảng thay đổi phần trăm
-                            st.dataframe(
-                                compare_df[
-                                    [
-                                        "Component",
-                                        f"{prev_m_year}",
-                                        f"{selected_m_year}",
-                                        "Change (%)",
-                                    ]
-                                ].style.format(
+                        cols = st.columns(2)
+                        with cols[0]:
+                            st.plotly_chart(fig_m_breakdown, use_container_width=True)
+                        with cols[1]:
+                            # Add comparison chart with previous year if possible
+                            if selected_m_year_index > 0:
+                                prev_m_components = m_components[selected_m_year_index - 1]
+                                prev_m_year = m_years[selected_m_year_index - 1]
+                                compare_df = pd.DataFrame(
                                     {
-                                        f"{prev_m_year}": "{:.3f}",
-                                        f"{selected_m_year}": "{:.3f}",
-                                        "Change (%)": "{:+.2f}%",
+                                        "Component": list(selected_m_components.keys()),
+                                        f"{prev_m_year}": [
+                                            prev_m_components[k]
+                                            for k in selected_m_components.keys()
+                                        ],
+                                        f"{selected_m_year}": [
+                                            selected_m_components[k]
+                                            for k in selected_m_components.keys()
+                                        ],
                                     }
-                                ),
-                                use_container_width=True,
-                            )
+                                )
+                                compare_df["Change (%)"] = (
+                                    (
+                                        compare_df[f"{selected_m_year}"]
+                                        - compare_df[f"{prev_m_year}"]
+                                    )
+                                    / compare_df[f"{prev_m_year}"].replace(0, np.nan)
+                                ) * 100
+
+                                fig_compare = go.Figure()
+                                fig_compare.add_trace(
+                                    go.Bar(
+                                        x=compare_df["Component"],
+                                        y=compare_df[f"{prev_m_year}"],
+                                        name=f"{prev_m_year}",
+                                        marker_color="lightgray",
+                                    )
+                                )
+                                fig_compare.add_trace(
+                                    go.Bar(
+                                        x=compare_df["Component"],
+                                        y=compare_df[f"{selected_m_year}"],
+                                        name=f"{selected_m_year}",
+                                        marker_color="royalblue",
+                                    )
+                                )
+                                fig_compare.update_layout(
+                                    barmode="group",
+                                    title=f"So sánh các thành phần M-Score: {prev_m_year} vs {selected_m_year}",
+                                    xaxis_title="Component",
+                                    yaxis_title="Value",
+                                    height=400,
+                                )
+                                st.plotly_chart(fig_compare, use_container_width=True)
+
+                        # Hiển thị bảng thay đổi phần trăm
+                        st.dataframe(
+                            compare_df[
+                                [
+                                    "Component",
+                                    f"{prev_m_year}",
+                                    f"{selected_m_year}",
+                                    "Change (%)",
+                                ]
+                            ].style.format(
+                                {
+                                    f"{prev_m_year}": "{:.3f}",
+                                    f"{selected_m_year}": "{:.3f}",
+                                    "Change (%)": "{:+.2f}%",
+                                }
+                            ),
+                            use_container_width=True,
+                        )
 
                         # Add interpretation
                         st.markdown(
@@ -1587,371 +1575,5 @@ def display_stock_score(stock):
                         for note in beneish_component_assessment(selected_m_components):
                             st.markdown(note)
 
-            with tab5:
-                st.header("DuPont Analysis")
-                st.markdown(
-                    """
-                **Phân tích DuPont** giúp tách nhỏ tỷ suất lợi nhuận trên vốn chủ sở hữu (ROE) thành 3 thành phần để hiểu rõ động lực tạo ra lợi nhuận của doanh nghiệp:
-                
-                1. **Biên lợi nhuận** = Lợi nhuận ròng / Doanh thu
-                2. **Vòng quay tài sản** = Doanh thu / Tổng tài sản
-                3. **Đòn bẩy tài chính** = Tổng tài sản / Vốn chủ sở hữu
-                
-                ROE = Biên lợi nhuận × Vòng quay tài sản × Đòn bẩy tài chính
-                
-                Phân tích này giúp xác định ROE của doanh nghiệp đến từ:
-                - Hiệu quả hoạt động (Biên lợi nhuận)
-                - Khả năng sử dụng tài sản (Vòng quay tài sản)
-                - Mức độ sử dụng đòn bẩy tài chính (Đòn bẩy tài chính)
-                """
-                )
-
-                # Calculate DuPont components
-                def calculate_dupont(year_index, is_df, bs_df):
-                    if year_index >= len(is_df):
-                        return None
-
-                    # Extract values
-                    net_income = is_df.loc[year_index, "Net Profit For the Year"]
-                    sales = is_df.loc[year_index, "Net Sales"]
-                    total_assets = bs_df.loc[year_index, "TOTAL ASSETS (Bn. VND)"]
-                    equity = bs_df.loc[year_index, "OWNER'S EQUITY(Bn.VND)"]
-
-                    # Calculate components
-                    profit_margin = net_income / sales if sales != 0 else 0
-                    asset_turnover = sales / total_assets if total_assets != 0 else 0
-                    financial_leverage = total_assets / equity if equity != 0 else 0
-
-                    # Calculate ROE
-                    roe = profit_margin * asset_turnover * financial_leverage
-
-                    components = {
-                        "Profit Margin": profit_margin,
-                        "Asset Turnover": asset_turnover,
-                        "Financial Leverage": financial_leverage,
-                        "ROE": roe,
-                    }
-
-                    return components
-
-                # Calculate DuPont components for all years
-                dupont_components = []
-                dupont_years = []
-
-                for i in range(len(is_df)):
-                    year = is_df.loc[i, "yearReport"]
-                    components = calculate_dupont(i, is_df, bs_df)
-
-                    if components is not None:
-                        dupont_components.append(components)
-                        dupont_years.append(year)
-
-                # Create DuPont visualization
-                fig_dupont = go.Figure()
-
-                # Add traces for each component
-                fig_dupont.add_trace(
-                    go.Scatter(
-                        x=dupont_years,
-                        y=[comp["Profit Margin"] for comp in dupont_components],
-                        mode="lines+markers",
-                        name="Profit Margin",
-                        line=dict(color="blue"),
-                    )
-                )
-
-                fig_dupont.add_trace(
-                    go.Scatter(
-                        x=dupont_years,
-                        y=[comp["Asset Turnover"] for comp in dupont_components],
-                        mode="lines+markers",
-                        name="Asset Turnover",
-                        line=dict(color="green"),
-                    )
-                )
-
-                fig_dupont.add_trace(
-                    go.Scatter(
-                        x=dupont_years,
-                        y=[comp["Financial Leverage"] for comp in dupont_components],
-                        mode="lines+markers",
-                        name="Financial Leverage",
-                        line=dict(color="red"),
-                    )
-                )
-
-                fig_dupont.add_trace(
-                    go.Scatter(
-                        x=dupont_years,
-                        y=[comp["ROE"] for comp in dupont_components],
-                        mode="lines+markers",
-                        name="ROE",
-                        line=dict(color="purple", width=3),
-                    )
-                )
-
-                fig_dupont.update_layout(
-                    title="DuPont Analysis Components Over Time",
-                    xaxis_title="Year",
-                    yaxis_title="Value",
-                    hovermode="x unified",
-                )
-
-                st.plotly_chart(fig_dupont, use_container_width=True)
-
-                # Add component breakdown for selected year
-                if len(dupont_years) > 0:
-                    selected_dupont_year_index = st.selectbox(
-                        "Select Year for DuPont Components:",
-                        options=list(range(len(dupont_years))),
-                        format_func=lambda x: dupont_years[x],
-                        index=len(dupont_years) - 1,  # Default to the most recent year
-                    )
-
-                    if selected_dupont_year_index is not None:
-                        selected_components = dupont_components[selected_dupont_year_index]
-                        selected_year = dupont_years[selected_dupont_year_index]
-
-                        st.write(f"### DuPont Analysis Breakdown for {selected_year}")
-
-                        # Create component breakdown visualization
-                        component_df = pd.DataFrame(
-                            {
-                                "Component": list(selected_components.keys()),
-                                "Value": list(selected_components.values()),
-                            }
-                        )
-
-                        fig_breakdown = px.bar(
-                            component_df,
-                            x="Component",
-                            y="Value",
-                            color="Value",
-                            color_continuous_scale="RdYlGn",
-                        )
-
-                        fig_breakdown.update_layout(
-                            title=f"DuPont Components for {selected_year}",
-                            xaxis_title="Component",
-                            yaxis_title="Value",
-                            height=400,
-                        )
-
-                        st.plotly_chart(fig_breakdown, use_container_width=True)
-
-                        # Add interpretation
-                        st.markdown(
-                            """
-                        **Giải thích các thành phần:**
-                        - **Biên lợi nhuận**: Giá trị cao cho thấy doanh nghiệp hoạt động hiệu quả, kiểm soát tốt chi phí.
-                        - **Vòng quay tài sản**: Giá trị cao thể hiện doanh nghiệp sử dụng tài sản hiệu quả để tạo ra doanh thu.
-                        - **Đòn bẩy tài chính**: Giá trị cao cho thấy doanh nghiệp sử dụng nhiều nợ vay, tiềm ẩn rủi ro tài chính.
-                        - **ROE**: Chỉ số tổng hợp thể hiện khả năng sinh lời trên vốn chủ sở hữu.
-                        
-                        **Bối cảnh ngành:**
-                        - So sánh các tỷ số này với trung bình ngành để đánh giá vị thế doanh nghiệp.
-                        - Theo dõi xu hướng và biến động lớn qua các năm.
-                        - Cân nhắc giữa việc tăng đòn bẩy và rủi ro tài chính.
-                        """
-                        )
-
-                # Calculate C-Score
-                st.write("### C-Score Analysis")
-
-                try:
-                    # Calculate C-Score components for all years
-                    def calculate_c_score(year_index, cf_df, is_df, bs_df):
-                        if year_index < 1:  # Need previous year data
-                            return None, None
-
-                        c_score = 0
-                        components = {}
-
-                        # Check for accruals
-                        net_income = is_df.loc[year_index, "Net Profit For the Year"]
-                        op_cash_flow = cf_df.loc[
-                            year_index, "Net cash inflows/outflows from operating activities"
-                        ]
-                        components["Accruals > Operating Cash Flow"] = (
-                            1 if net_income > op_cash_flow else 0
-                        )
-                        c_score += components["Accruals > Operating Cash Flow"]
-
-                        # Check leverage change
-                        total_liabilities = bs_df.loc[year_index, "LIABILITIES (Bn. VND)"]
-                        total_assets = bs_df.loc[year_index, "TOTAL ASSETS (Bn. VND)"]
-                        prev_total_liabilities = bs_df.loc[year_index - 1, "LIABILITIES (Bn. VND)"]
-                        prev_total_assets = bs_df.loc[year_index - 1, "TOTAL ASSETS (Bn. VND)"]
-
-                        leverage_current = total_liabilities / total_assets
-                        leverage_prev = prev_total_liabilities / prev_total_assets
-                        components["Increasing Leverage"] = (
-                            1 if leverage_current > leverage_prev else 0
-                        )
-                        c_score += components["Increasing Leverage"]
-
-                        # Check liquidity change
-                        current_assets = bs_df.loc[year_index, "CURRENT ASSETS (Bn. VND)"]
-                        current_liabilities = bs_df.loc[
-                            year_index, "Current liabilities (Bn. VND)"
-                        ]
-                        prev_current_assets = bs_df.loc[year_index - 1, "CURRENT ASSETS (Bn. VND)"]
-                        prev_current_liabilities = bs_df.loc[
-                            year_index - 1, "Current liabilities (Bn. VND)"
-                        ]
-
-                        current_ratio = current_assets / current_liabilities
-                        prev_current_ratio = prev_current_assets / prev_current_liabilities
-                        components["Decreasing Liquidity"] = (
-                            1 if current_ratio < prev_current_ratio else 0
-                        )
-                        c_score += components["Decreasing Liquidity"]
-
-                        # Check for equity dilution
-                        shares = bs_df.loc[year_index, "Common shares (Bn. VND)"]
-                        prev_shares = bs_df.loc[year_index - 1, "Common shares (Bn. VND)"]
-                        components["Equity Dilution"] = 1 if shares > prev_shares else 0
-                        c_score += components["Equity Dilution"]
-
-                        # Check gross margin change
-                        gross_profit = is_df.loc[year_index, "Gross Profit"]
-                        sales = is_df.loc[year_index, "Net Sales"]
-                        prev_gross_profit = is_df.loc[year_index - 1, "Gross Profit"]
-                        prev_sales = is_df.loc[year_index - 1, "Net Sales"]
-
-                        gross_margin = gross_profit / sales
-                        prev_gross_margin = prev_gross_profit / prev_sales
-                        components["Declining Gross Margins"] = (
-                            1 if gross_margin < prev_gross_margin else 0
-                        )
-                        c_score += components["Declining Gross Margins"]
-
-                        return c_score, components
-
-                    # Calculate C-Score for all years
-                    c_scores = []
-                    c_components = []
-                    c_years = []
-
-                    for i in range(len(is_df)):
-                        year = is_df.loc[i, "yearReport"]
-                        result = calculate_c_score(i, cf_df, is_df, bs_df)
-
-                        if result is not None and result[0] is not None:
-                            score, components = result
-                            c_scores.append(score)
-                            c_components.append(components)
-                            c_years.append(year)
-
-                        # Create C-score visualization
-                        fig_c_score = go.Figure()
-
-                        # Color based on risk levels
-                        colors = [
-                            "green" if c <= 1 else "yellow" if c <= 3 else "red" for c in c_scores
-                        ]
-
-                        fig_c_score.add_trace(
-                            go.Bar(
-                                x=c_years,
-                                y=c_scores,
-                                marker_color=colors,
-                                text=c_scores,
-                                textposition="auto",
-                            )
-                        )
-
-                        fig_c_score.update_layout(
-                            title="C-Score Over Time",
-                            xaxis_title="Year",
-                            yaxis_title="C-Score",
-                            yaxis=dict(range=[0, 5]),
-                            shapes=[
-                                dict(
-                                    type="rect",
-                                    xref="paper",
-                                    yref="y",
-                                    x0=0,
-                                    y0=0,
-                                    x1=1,
-                                    y1=2,
-                                    fillcolor="rgba(0,255,0,0.1)",
-                                    line=dict(width=0),
-                                ),
-                                dict(
-                                    type="rect",
-                                    xref="paper",
-                                    yref="y",
-                                    x0=0,
-                                    y0=2,
-                                    x1=1,
-                                    y1=4,
-                                    fillcolor="rgba(255,255,0,0.1)",
-                                    line=dict(width=0),
-                                ),
-                                dict(
-                                    type="rect",
-                                    xref="paper",
-                                    yref="y",
-                                    x0=0,
-                                    y0=4,
-                                    x1=1,
-                                    y1=5,
-                                    fillcolor="rgba(255,0,0,0.1)",
-                                    line=dict(width=0),
-                                ),
-                            ],
-                        )
-
-                    st.plotly_chart(fig_c_score, use_container_width=True)
-
-                    # C-score breakdown for selected year
-                    selected_c_year_index = st.selectbox(
-                        "Select Year for C-Score Components:",
-                        options=list(range(len(c_years))),
-                        format_func=lambda x: c_years[x],
-                        index=len(c_years) - 1,  # Default to the most recent year
-                    )
-
-                    if selected_c_year_index is not None:
-                        selected_components = c_components[selected_c_year_index]
-                        selected_year = c_years[selected_c_year_index]
-
-                        st.write(f"### C-Score Breakdown for {selected_year}")
-
-                        component_df = pd.DataFrame(
-                            {
-                                "Component": list(selected_components.keys()),
-                                "Value": list(selected_components.values()),
-                            }
-                        )
-
-                        fig_breakdown = px.bar(
-                            component_df,
-                            x="Component",
-                            y="Value",
-                            color="Value",
-                            color_continuous_scale=["green", "red"],
-                            range_color=[0, 1],
-                        )
-
-                        st.plotly_chart(fig_breakdown, use_container_width=True)
-
-                        st.markdown(
-                            """
-                        **Giải thích C-Score:**
-                        - Điểm số dao động từ 0 (rủi ro thấp nhất) đến 5 (rủi ro cao nhất)
-                        - Mỗi điểm phản ánh một dấu hiệu cảnh báo tiềm ẩn:
-                            - Accruals > Dòng tiền hoạt động: Có thể có dấu hiệu điều chỉnh lợi nhuận
-                            - Đòn bẩy tăng: Rủi ro tài chính cao hơn
-                            - Thanh khoản giảm: Có thể gặp khó khăn về dòng tiền
-                            - Pha loãng cổ phiếu: Giá trị cổ phiếu có thể bị giảm
-                            - Biên lợi nhuận gộp giảm: Áp lực cạnh tranh hoặc chi phí tăng
-                        - Điểm càng cao càng cho thấy nguy cơ gặp khó khăn tài chính lớn hơn
-                        """
-                        )
-
-                except Exception as e:
-                    st.warning(f"Unable to calculate C-Score: {str(e)}")
         except Exception as e:
             st.error(f"Error fetching data for {stock}: {str(e)}")

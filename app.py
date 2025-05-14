@@ -238,6 +238,7 @@ def main():
             display_trading_analysis(stock, df_price, df_index, start_date, end_date)
         elif page == "📃 Phân Tích Cơ Bản Cổ Phiếu":
             display_stock_score(stock)
+            st.divider()
             display_dupont_analysis(stock)
         elif page == "💲 Đầu Tư Quỹ Mở":
             display_fund_data()
