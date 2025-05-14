@@ -492,9 +492,9 @@ def display_dupont_analysis(stock):
 @st.cache_data
 def load_data(stock):
     vn_stock = Vnstock().stock(symbol=stock, source="VCI")
-    is_df = vn_stock.finance.income_statement(period="year", lang="en").head(8)
-    bs_df = vn_stock.finance.balance_sheet(period="year", lang="en").head(8)
-    cf_df = vn_stock.finance.cash_flow(period="year", lang="en").head(8)
+    is_df = vn_stock.finance.income_statement(period="year", lang="en")
+    bs_df = vn_stock.finance.balance_sheet(period="year", lang="en")
+    cf_df = vn_stock.finance.cash_flow(period="year", lang="en")
 
     # Reverse rows to have chronological order
     cf_df = cf_df.iloc[::-1].reset_index(drop=True)
@@ -848,7 +848,7 @@ def display_stock_score(stock):
                         for crit in criteria:
                             row[crit] = "✅" if f_score_details[idx][crit] else "❌"
                         detail_data.append(row)
-                    detail_df = pd.DataFrame(detail_data)
+                    detail_df = pd.DataFrame(detail_data).sort_index(ascending=False)
                     st.dataframe(detail_df, hide_index=True, use_container_width=True)
 
             with tab3:
