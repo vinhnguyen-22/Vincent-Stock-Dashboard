@@ -134,7 +134,7 @@ def format_number(num, suffix=""):
 
 
 def IS_company(stock):
-    vn_stock = Vnstock().stock(symbol=stock, source="VCI")
+    vn_stock = Vnstock().stock(symbol=stock, source="TCBS")
     IS = vn_stock.finance.income_statement(period="quarter", lang="en").head(8)
 
     # Chọn các cột cần thiết

@@ -78,7 +78,7 @@ def filter_components():
         index=0,
     )
     stock_by_exchange = (
-        Vnstock().stock("ACB", source="VCI").listing.symbols_by_group(exchange).tolist()
+        Vnstock().stock("ACB", source="TCBS").listing.symbols_by_group(exchange).tolist()
     )
 
     stock_sets.append(set(stock_by_exchange))
@@ -169,7 +169,7 @@ def filter_by_ownerratio(stocks, end_date):
 
 def filter_stocks_by_industry():
     # Lấy dữ liệu ngành từ API
-    stock = Vnstock().stock("ACB", source="VCI")
+    stock = Vnstock().stock("ACB", source="TCBS")
     df = stock.listing.symbols_by_industries()
 
     # UI chọn ngành cấp 1

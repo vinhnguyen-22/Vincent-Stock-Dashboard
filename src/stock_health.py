@@ -45,7 +45,7 @@ def display_dupont_analysis(stock):
         st.warning("Chức năng này không hỗ trợ cho ngân hàng.")
         return
     else:
-        vn_stock = Vnstock().stock(symbol=stock, source="VCI")
+        vn_stock = Vnstock().stock(symbol=stock, source="TCBS")
         is_df = vn_stock.finance.income_statement(period="year", lang="en").head(8)
         bs_df = vn_stock.finance.balance_sheet(period="year", lang="en").head(8)
         cf_df = vn_stock.finance.cash_flow(period="year", lang="en").head(8)
@@ -491,7 +491,7 @@ def display_dupont_analysis(stock):
 
 @st.cache_data
 def load_data(stock):
-    vn_stock = Vnstock().stock(symbol=stock, source="VCI")
+    vn_stock = Vnstock().stock(symbol=stock, source="TCBS")
     is_df = vn_stock.finance.income_statement(period="year", lang="en")
     bs_df = vn_stock.finance.balance_sheet(period="year", lang="en")
     cf_df = vn_stock.finance.cash_flow(period="year", lang="en")
@@ -588,6 +588,119 @@ def calculate_f_score(year_index, cf_df, is_df, bs_df):
     total_score += scores["Increasing Asset Turnover"]
 
     return total_score, scores
+
+
+def calculate_m_score(year_index, cf_df, is_df, bs_df):
+    if year_index < 1:
+        return None, None
+
+    try:
+        # Helper to safely get values, default to 0 if missing
+        def safe_get(df, idx, col):
+            try:
+                return df.loc[idx, col]
+            except Exception:
+                return 0
+
+        # DSRI
+        receivables = safe_get(bs_df, year_index, "Accounts receivable (Bn. VND)")
+        sales = safe_get(is_df, year_index, "Net Sales")
+        prev_receivables = safe_get(bs_df, year_index - 1, "Accounts receivable (Bn. VND)")
+        prev_sales = safe_get(is_df, year_index - 1, "Net Sales")
+        if prev_sales == 0 or prev_receivables == 0:
+            return None, None
+        dsri = (receivables / sales) / (prev_receivables / prev_sales)
+
+        # GMI
+        gross_profit = safe_get(is_df, year_index, "Gross Profit")
+        prev_gross_profit = safe_get(is_df, year_index - 1, "Gross Profit")
+        gross_margin = gross_profit / sales if sales != 0 else 0
+        prev_gross_margin = prev_gross_profit / prev_sales if prev_sales != 0 else 0
+        if gross_margin == 0:
+            return None, None
+        gmi = prev_gross_margin / gross_margin
+
+        # AQI
+        current_assets = safe_get(bs_df, year_index, "CURRENT ASSETS (Bn. VND)")
+        total_assets = safe_get(bs_df, year_index, "TOTAL ASSETS (Bn. VND)")
+        prev_current_assets = safe_get(bs_df, year_index - 1, "CURRENT ASSETS (Bn. VND)")
+        prev_total_assets = safe_get(bs_df, year_index - 1, "TOTAL ASSETS (Bn. VND)")
+        non_current_assets = total_assets - current_assets
+        prev_non_current_assets = prev_total_assets - prev_current_assets
+        if prev_total_assets == 0 or prev_non_current_assets == 0 or total_assets == 0:
+            return None, None
+        aqi = (non_current_assets / total_assets) / (prev_non_current_assets / prev_total_assets)
+
+        # SGI
+        sgi = sales / prev_sales
+
+        # DEPI
+        depreciation = safe_get(cf_df, year_index, "Depreciation and Amortisation")
+        prev_depreciation = safe_get(cf_df, year_index - 1, "Depreciation and Amortisation")
+        fixed_assets = safe_get(bs_df, year_index, "Fixed assets (Bn. VND)")
+        prev_fixed_assets = safe_get(bs_df, year_index - 1, "Fixed assets (Bn. VND)")
+        if (
+            fixed_assets == 0
+            or prev_fixed_assets == 0
+            or prev_depreciation == 0
+            or depreciation == 0
+        ):
+            return None, None
+        depi = (prev_depreciation / prev_fixed_assets) / (depreciation / fixed_assets)
+
+        # SGAI
+        selling_expenses = safe_get(is_df, year_index, "Selling Expenses")
+        admin_expenses = safe_get(is_df, year_index, "General & Admin Expenses")
+        prev_selling_expenses = safe_get(is_df, year_index - 1, "Selling Expenses")
+        prev_admin_expenses = safe_get(is_df, year_index - 1, "General & Admin Expenses")
+        sga = selling_expenses + admin_expenses
+        prev_sga = prev_selling_expenses + prev_admin_expenses
+        if prev_sga == 0 or prev_sales == 0 or sales == 0:
+            return None, None
+        sgai = (sga / sales) / (prev_sga / prev_sales)
+
+        # TATA
+        net_income = safe_get(is_df, year_index, "Net Profit For the Year")
+        op_cash_flow = safe_get(
+            cf_df, year_index, "Net cash inflows/outflows from operating activities"
+        )
+        if total_assets == 0:
+            return None, None
+        tata = (net_income - op_cash_flow) / total_assets
+
+        # LVGI
+        total_liabilities = safe_get(bs_df, year_index, "LIABILITIES (Bn. VND)")
+        prev_total_liabilities = safe_get(bs_df, year_index - 1, "LIABILITIES (Bn. VND)")
+        if prev_total_liabilities == 0 or prev_total_assets == 0 or total_assets == 0:
+            return None, None
+        lvgi = (total_liabilities / total_assets) / (prev_total_liabilities / prev_total_assets)
+
+        m_score = (
+            -4.84
+            + 0.92 * dsri
+            + 0.528 * gmi
+            + 0.404 * aqi
+            + 0.892 * sgi
+            + 0.115 * depi
+            - 0.172 * sgai
+            + 4.679 * tata
+            - 0.327 * lvgi
+        )
+
+        components = {
+            "Days Sales in Receivables Index (DSRI)": dsri,
+            "Gross Margin Index (GMI)": gmi,
+            "Asset Quality Index (AQI)": aqi,
+            "Sales Growth Index (SGI)": sgi,
+            "Depreciation Index (DEPI)": depi,
+            "SG&A Expense Index (SGAI)": sgai,
+            "Total Accruals to Total Assets (TATA)": tata,
+            "Leverage Index (LVGI)": lvgi,
+        }
+        return m_score, components
+
+    except Exception:
+        return None, None
 
 
 def display_stock_score(stock):
@@ -1175,138 +1288,6 @@ def display_stock_score(stock):
                 )
 
                 # Calculate Beneish M-Score
-                def calculate_m_score(year_index, cf_df, is_df, bs_df):
-                    if year_index < 1:  # Need previous year data
-                        return None, None
-
-                    # Calculate DSRI - Days Sales in Receivables Index
-                    receivables = bs_df.loc[year_index, "Accounts receivable (Bn. VND)"]
-                    sales = is_df.loc[year_index, "Net Sales"]
-                    prev_receivables = bs_df.loc[year_index - 1, "Accounts receivable (Bn. VND)"]
-                    prev_sales = is_df.loc[year_index - 1, "Net Sales"]
-
-                    if prev_sales == 0 or prev_receivables == 0:
-                        return None, None
-
-                    dsri = (receivables / sales) / (prev_receivables / prev_sales)
-
-                    # Calculate GMI - Gross Margin Index
-                    gross_profit = is_df.loc[year_index, "Gross Profit"]
-                    prev_gross_profit = is_df.loc[year_index - 1, "Gross Profit"]
-
-                    prev_gross_margin = prev_gross_profit / prev_sales
-                    gross_margin = gross_profit / sales
-
-                    if prev_gross_margin == 0:
-                        return None, None
-
-                    gmi = prev_gross_margin / gross_margin
-
-                    # Calculate AQI - Asset Quality Index
-                    current_assets = bs_df.loc[year_index, "CURRENT ASSETS (Bn. VND)"]
-                    total_assets = bs_df.loc[year_index, "TOTAL ASSETS (Bn. VND)"]
-                    prev_current_assets = bs_df.loc[year_index - 1, "CURRENT ASSETS (Bn. VND)"]
-                    prev_total_assets = bs_df.loc[year_index - 1, "TOTAL ASSETS (Bn. VND)"]
-
-                    non_current_assets = total_assets - current_assets
-                    prev_non_current_assets = prev_total_assets - prev_current_assets
-
-                    if prev_total_assets == 0 or prev_non_current_assets == 0:
-                        return None, None
-
-                    aqi = (non_current_assets / total_assets) / (
-                        prev_non_current_assets / prev_total_assets
-                    )
-
-                    # Calculate SGI - Sales Growth Index
-                    sgi = sales / prev_sales
-
-                    # Calculate DEPI - Depreciation Index
-                    depreciation = cf_df.loc[year_index, "Depreciation and Amortisation"]
-                    prev_depreciation = cf_df.loc[year_index - 1, "Depreciation and Amortisation"]
-
-                    fixed_assets = bs_df.loc[year_index, "Fixed assets (Bn. VND)"]
-                    prev_fixed_assets = bs_df.loc[year_index - 1, "Fixed assets (Bn. VND)"]
-
-                    if fixed_assets == 0 or prev_fixed_assets == 0 or prev_depreciation == 0:
-                        return None, None
-
-                    depi = (prev_depreciation / prev_fixed_assets) / (depreciation / fixed_assets)
-
-                    # Calculate SGAI - SG&A Expense Index
-                    # Handle missing columns for SGA calculation
-                    selling_expenses_col = (
-                        "Selling Expenses" if "Selling Expenses" in is_df.columns else None
-                    )
-                    admin_expenses_col = (
-                        "General & Admin Expenses"
-                        if "General & Admin Expenses" in is_df.columns
-                        else None
-                    )
-
-                    def get_expense(df, idx, col):
-                        return df.loc[idx, col] if col and col in df.columns else 0
-
-                    sga = get_expense(is_df, year_index, selling_expenses_col) + get_expense(
-                        is_df, year_index, admin_expenses_col
-                    )
-                    prev_sga = get_expense(
-                        is_df, year_index - 1, selling_expenses_col
-                    ) + get_expense(is_df, year_index - 1, admin_expenses_col)
-
-                    if prev_sga == 0 or prev_sales == 0:
-                        return None, None
-
-                    sgai = (sga / sales) / (prev_sga / prev_sales)
-
-                    # Calculate TATA - Total Accruals to Total Assets
-                    net_income = is_df.loc[year_index, "Net Profit For the Year"]
-                    op_cash_flow = cf_df.loc[
-                        year_index, "Net cash inflows/outflows from operating activities"
-                    ]
-
-                    if total_assets == 0:
-                        return None, None
-
-                    tata = (net_income - op_cash_flow) / total_assets
-
-                    # Calculate LVGI - Leverage Index
-                    total_liabilities = bs_df.loc[year_index, "LIABILITIES (Bn. VND)"]
-                    prev_total_liabilities = bs_df.loc[year_index - 1, "LIABILITIES (Bn. VND)"]
-
-                    if prev_total_liabilities == 0 or prev_total_assets == 0:
-                        return None, None
-
-                    lvgi = (total_liabilities / total_assets) / (
-                        prev_total_liabilities / prev_total_assets
-                    )
-
-                    # Calculate M-Score using the Beneish model
-                    m_score = (
-                        -4.84
-                        + 0.92 * dsri
-                        + 0.528 * gmi
-                        + 0.404 * aqi
-                        + 0.892 * sgi
-                        + 0.115 * depi
-                        - 0.172 * sgai
-                        + 4.679 * tata
-                        - 0.327 * lvgi
-                    )
-
-                    # Store components
-                    components = {
-                        "Days Sales in Receivables Index (DSRI)": dsri,
-                        "Gross Margin Index (GMI)": gmi,
-                        "Asset Quality Index (AQI)": aqi,
-                        "Sales Growth Index (SGI)": sgi,
-                        "Depreciation Index (DEPI)": depi,
-                        "SG&A Expense Index (SGAI)": sgai,
-                        "Total Accruals to Total Assets (TATA)": tata,
-                        "Leverage Index (LVGI)": lvgi,
-                    }
-
-                    return m_score, components
 
                 # Calculate M-Score for all years
                 m_scores = []

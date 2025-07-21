@@ -36,7 +36,7 @@ def overview_market():
         index=0,
     )
     stock_by_exchange = (
-        Vnstock().stock("ACB", source="VCI").listing.symbols_by_group(exchange).tolist()
+        Vnstock().stock("ACB", source="TCBS").listing.symbols_by_group(exchange).tolist()
     )
     df = pd.DataFrame()
     for ticker in stock_by_exchange:
