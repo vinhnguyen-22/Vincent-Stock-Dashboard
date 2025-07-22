@@ -133,63 +133,63 @@ def format_number(num, suffix=""):
         return f"{formatted} {suffix}"
 
 
-def IS_company(stock):
-    vn_stock = Vnstock().stock(symbol=stock, source="TCBS")
-    IS = vn_stock.finance.income_statement(period="quarter", lang="en").head(8)
+# def IS_company(stock):
+#     vn_stock = Vnstock().stock(symbol=stock, source="TCBS")
+#     IS = vn_stock.finance.income_statement(period="quarter", lang="en").head(8)
+#     st.write(IS)
+#     # Chọn các cột cần thiết
+#     IS = IS[
+#         [
+#             "yearReport",
+#             "lengthReport",
+#             "revenue",
+#             "Attribute to parent company (Bn. VND)",
+#         ]
+#     ]
+#     IS = IS.sort_values(by=["yearReport", "lengthReport"], ascending=[True, True])
 
-    # Chọn các cột cần thiết
-    IS = IS[
-        [
-            "yearReport",
-            "lengthReport",
-            "Revenue (Bn. VND)",
-            "Attribute to parent company (Bn. VND)",
-        ]
-    ]
-    IS = IS.sort_values(by=["yearReport", "lengthReport"], ascending=[True, True])
+#     # Tạo cột kỳ để dễ xử lý
+#     IS["Kỳ"] = "Q" + IS["lengthReport"].astype(str) + "/" + IS["yearReport"].astype(str)
 
-    # Tạo cột kỳ để dễ xử lý
-    IS["Kỳ"] = "Q" + IS["lengthReport"].astype(str) + "/" + IS["yearReport"].astype(str)
+#     # Tìm quý gần nhất
+#     latest_row = IS.iloc[-1]
+#     latest_quarter = latest_row["lengthReport"]
+#     latest_year = latest_row["yearReport"]
+#     latest_kỳ = latest_row["Kỳ"]
+#     latest_revenue = latest_row["Revenue (Bn. VND)"]
+#     latest_profit = latest_row["Attribute to parent company (Bn. VND)"]
 
-    # Tìm quý gần nhất
-    latest_row = IS.iloc[-1]
-    latest_quarter = latest_row["lengthReport"]
-    latest_year = latest_row["yearReport"]
-    latest_kỳ = latest_row["Kỳ"]
-    latest_revenue = latest_row["Revenue (Bn. VND)"]
-    latest_profit = latest_row["Attribute to parent company (Bn. VND)"]
+#     # Tìm cùng kỳ năm trước
+#     prev_year = latest_year - 1
+#     prev_row = IS[(IS["lengthReport"] == latest_quarter) & (IS["yearReport"] == prev_year)]
 
-    # Tìm cùng kỳ năm trước
-    prev_year = latest_year - 1
-    prev_row = IS[(IS["lengthReport"] == latest_quarter) & (IS["yearReport"] == prev_year)]
+#     if not prev_row.empty:
+#         prev_revenue = prev_row.iloc[0]["Revenue (Bn. VND)"]
+#         prev_profit = prev_row.iloc[0]["Attribute to parent company (Bn. VND)"]
 
-    if not prev_row.empty:
-        prev_revenue = prev_row.iloc[0]["Revenue (Bn. VND)"]
-        prev_profit = prev_row.iloc[0]["Attribute to parent company (Bn. VND)"]
+#         delta_rev_pct = (latest_revenue - prev_revenue) / prev_revenue * 100
+#         delta_profit_pct = (latest_profit - prev_profit) / prev_profit * 100
 
-        delta_rev_pct = (latest_revenue - prev_revenue) / prev_revenue * 100
-        delta_profit_pct = (latest_profit - prev_profit) / prev_profit * 100
+#         # Hiển thị song song 2 chỉ số
+#         col1, col2 = st.columns(2)
 
-        # Hiển thị song song 2 chỉ số
-        col1, col2 = st.columns(2)
+#         with col1:
+#             st.metric(
+#                 label=f"Doanh thu {latest_kỳ} vs Q{latest_quarter}/{prev_year}",
+#                 value=format_number(latest_revenue),
+#                 border=True,
+#                 delta=f"{delta_rev_pct:.2f}% so với cùng kỳ",
+#             )
 
-        with col1:
-            st.metric(
-                label=f"Doanh thu {latest_kỳ} vs Q{latest_quarter}/{prev_year}",
-                value=format_number(latest_revenue),
-                border=True,
-                delta=f"{delta_rev_pct:.2f}% so với cùng kỳ",
-            )
-
-        with col2:
-            st.metric(
-                label=f"LNST (CĐ mẹ) {latest_kỳ} vs Q{latest_quarter}/{prev_year}",
-                value=format_number(latest_profit),
-                border=True,
-                delta=f"{delta_profit_pct:.2f}% so với cùng kỳ",
-            )
-    else:
-        st.warning("Không có dữ liệu cho cùng kỳ quý trước!")
+#         with col2:
+#             st.metric(
+#                 label=f"LNST (CĐ mẹ) {latest_kỳ} vs Q{latest_quarter}/{prev_year}",
+#                 value=format_number(latest_profit),
+#                 border=True,
+#                 delta=f"{delta_profit_pct:.2f}% so với cùng kỳ",
+#             )
+#     else:
+#         st.warning("Không có dữ liệu cho cùng kỳ quý trước!")
 
 
 def company_profile(stock, df_price, df_pricing, start_date, end_date):
@@ -227,7 +227,8 @@ def company_profile(stock, df_price, df_pricing, start_date, end_date):
                 delta=f"{latest_data['% Lợi nhuận kế hoạch']:.2f}% Kế hoạch",
             )
     with col_2:
-        IS_company(stock)
+        pass
+        # IS_company(stock)
 
     st.sidebar.header("Filter Options")
     year_range = st.sidebar.slider(
