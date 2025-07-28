@@ -166,19 +166,43 @@ def get_fund_data(start_date):
         return None
 
 
-@st.cache_data(ttl=600)
-def fetch_cashflow_market(ticker, date=datetime.now().strftime("%Y-%m-%d")):
-    url = f"https://api-finfo.vndirect.com.vn/v4/cashflow_analysis/latest?order=time&where=code:{ticker}~period:1D&filter=date:{date}"
-    res = requests.get(url, headers=HEADERS)
-    res.raise_for_status()
-    data = res.json()
-    df = pd.DataFrame(data["data"])
-    if df.empty:
-        stock = Vnstock().stock(symbol=ticker, source="TCBS").quote.intraday(symbol=ticker)
-        print(stock)
+def fetch_cashflow_market(ticker, date=None):
+    if date is None:
+        date = datetime.now().strftime("%Y-%m-%d")
+    try:
+        url = (
+            f"https://api-finfo.vndirect.com.vn/v4/cashflow_analysis/latest?"
+            f"order=time&where=code:{ticker}~period:1D&filter=date:{date}"
+        )
+        res = requests.get(url, headers=HEADERS, verify=False, timeout=10)
+        res.raise_for_status()
+        data = res.json()
+
+        if "data" not in data or not isinstance(data["data"], list):
+            print(f"[{ticker}] API trả về không đúng format (không có 'data').")
+            return pd.DataFrame()
+
+        df = pd.DataFrame(data["data"])
+        if df.empty:
+            # Nếu không có dữ liệu, có thể log hoặc thử lấy dữ liệu khác
+            print(f"[{ticker}] Không có dữ liệu cashflow ngày {date}.")
+            # Bạn có thể lấy dữ liệu backup nếu muốn ở đây, ví dụ:
+            # stock = Vnstock().stock(symbol=ticker, source="TCBS").quote.intraday(symbol=ticker)
+            return pd.DataFrame()
+
+        # Kiểm tra cột 'date' và 'time'
+        if "date" in df.columns and "time" in df.columns:
+            df["datetime"] = pd.to_datetime(df["date"] + " " + df["time"])
+        else:
+            print(
+                f"[{ticker}] DataFrame thiếu cột 'date' hoặc 'time'. Columns hiện có: {df.columns}"
+            )
+            return pd.DataFrame()
         return df
-    df["datetime"] = pd.to_datetime(df["date"] + " " + df["time"])
-    return df
+
+    except Exception as e:
+        print(f"Lỗi khi fetch_cashflow_market({ticker}, {date}): {e}")
+        return pd.DataFrame()
 
 
 def plot_pie_fund(df):

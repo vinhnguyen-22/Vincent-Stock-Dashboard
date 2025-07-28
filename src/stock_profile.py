@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from dis import dis
 from math import e, sqrt
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -194,15 +195,18 @@ def format_number(num, suffix=""):
 
 def company_profile(stock, df_price, df_pricing, start_date, end_date):
     df = get_company_plan(stock, 2015)
-    if "netRevenueVal" and "netRevenueEst" not in df.columns:
-        df["netRevenueVal"] = 100
-        df["netRevenueEst"] = 100
+    for col in ["netRevenueVal", "netRevenueEst", "profitAftTaxVal", "profitAftTaxEst"]:
+        if col not in df.columns:
+            df[col] = 100  # hoặc np.nan, hoặc 0
 
     df = df.sort_values("fiscalYear")
     df["% Doanh Thu Kế Hoạch"] = df["netRevenueVal"] / df["netRevenueEst"] * 100
     df["% Lợi nhuận kế hoạch"] = df["profitAftTaxVal"] / df["profitAftTaxEst"] * 100
-    df.dropna(subset="% Doanh Thu Kế Hoạch", inplace=True)
-    df.dropna(subset="% Lợi nhuận kế hoạch", inplace=True)
+    df.dropna(subset=["% Doanh Thu Kế Hoạch"], inplace=True)
+    df.dropna(subset=["% Lợi nhuận kế hoạch"], inplace=True)
+    if df.empty:
+        st.warning("Không còn dữ liệu phù hợp sau khi lọc kế hoạch.")
+        return
     latest_year = df["fiscalYear"].iloc[-1]
     latest_data = df[df["fiscalYear"] == latest_year].iloc[0]
 
@@ -231,12 +235,19 @@ def company_profile(stock, df_price, df_pricing, start_date, end_date):
         # IS_company(stock)
 
     st.sidebar.header("Filter Options")
-    year_range = st.sidebar.slider(
-        "Select Year Range",
-        min_value=int(df["fiscalYear"].min()),
-        max_value=int(df["fiscalYear"].max()),
-        value=(int(df["fiscalYear"].min()), int(df["fiscalYear"].max())),
-    )
+    min_year = int(df["fiscalYear"].min())
+    max_year = int(df["fiscalYear"].max())
+
+    if min_year == max_year:
+        year_range = (min_year, max_year)
+        st.sidebar.info(f"Chỉ có dữ liệu năm {min_year}")
+    else:
+        year_range = st.sidebar.slider(
+            "Select Year Range",
+            min_value=min_year,
+            max_value=max_year,
+            value=(min_year, max_year),
+        )
 
     # Filter data based on selected years
     filtered_df = df[

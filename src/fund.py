@@ -55,7 +55,7 @@ def get_fund_detail(fund_code):
     """Lấy thông tin chi tiết của quỹ từ API"""
     try:
         url = f"https://api.fmarket.vn/home/product/{fund_code}"
-        response = requests.get(url)
+        response = requests.get(url, verify=False)
         if response.status_code == 200:
             return response.json()
         else:

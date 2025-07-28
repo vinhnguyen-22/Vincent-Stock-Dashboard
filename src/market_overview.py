@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -8,42 +9,53 @@ import streamlit as st
 from plotly.subplots import make_subplots
 from vnstock import Vnstock
 
+from src.config import RAW_DATA_DIR
 from src.features import fetch_cashflow_market
 
 
+def get_list_stock(exchange):
+    if exchange is None:
+        df = pd.read_csv(RAW_DATA_DIR / "list_stock.csv")[["symbol"]]
+    else:
+        df = pd.read_csv(RAW_DATA_DIR / "list_stock.csv")
+        df = df[df["exchange"].isin(exchange)].copy()
+    return df["symbol"].to_list()
+
+
 def overview_market():
-    df = pd.DataFrame()
+    st.title("Vincent Stock Market Dashboard")
     date = datetime.now().strftime("%Y-%m-%d")
     date = st.date_input("Chọn ngày", date)
-    exchange = st.selectbox(
-        "Chọn sàn giao dịch",
-        options=[
-            # "HOSE",
-            # "HNX",
-            # "UPCOM",
-            "VN30",
-            "VN100",
-            "HNX30",
-            "VNMidCap",
-            "VNSmallCap",
-            "VNAllShare",
-            "HNXCon",
-            "HNXFin",
-            "HNXLCap",
-            "HNXMSCap",
-            "HNXMan",
-        ],
-        index=0,
-    )
-    stock_by_exchange = (
-        Vnstock().stock("ACB", source="TCBS").listing.symbols_by_group(exchange).tolist()
-    )
-    df = pd.DataFrame()
-    for ticker in stock_by_exchange:
-        df_cf = fetch_cashflow_market(ticker, date)
-        if not df_cf.empty:
-            df = pd.concat([df, df_cf], ignore_index=True)
-    st.write(df)
+    stock_by_exchange = pd.read_csv(RAW_DATA_DIR / "list_VN100.csv")["symbol"].tolist()
+
+    # --- ĐA LUỒNG ---
+    def fetch_one(ticker):
+        try:
+            df_cf = fetch_cashflow_market(ticker, date)
+            return df_cf
+        except Exception as e:
+            print(f"Lỗi khi fetch {ticker}: {e}")
+            return pd.DataFrame()  # hoặc None
+
+    dfs = []
+    progress_bar = st.progress(0, text="Đang lấy dữ liệu các mã...")
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {executor.submit(fetch_one, ticker): ticker for ticker in stock_by_exchange}
+        total = len(stock_by_exchange)
+        for i, future in enumerate(as_completed(futures), 1):
+            df_cf = future.result()
+            if df_cf is not None and not df_cf.empty:
+                dfs.append(df_cf)
+            progress_bar.progress(i / total, text=f"Đã lấy {i}/{total} mã...")
+
+    progress_bar.empty()  # Ẩn progress bar khi xong
+
+    if dfs:
+        df = pd.concat(dfs, ignore_index=True)
+    else:
+        st.error("Không lấy được dữ liệu cho bất kỳ mã nào!")
+        return
 
     # Add title and description
     st.markdown(

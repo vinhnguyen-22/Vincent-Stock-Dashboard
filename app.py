@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from dis import dis
 from math import e, sqrt
 
+import requests
 import streamlit as st
 from dotenv import load_dotenv
 from streamlit_tags import st_tags
@@ -37,6 +38,16 @@ from src.stock_profile import company_profile
 
 load_dotenv()
 period = 7
+
+old_request = requests.Session.request
+
+
+def new_request(self, *args, **kwargs):
+    kwargs["verify"] = False
+    return old_request(self, *args, **kwargs)
+
+
+requests.Session.request = new_request
 
 
 def configure_streamlit():

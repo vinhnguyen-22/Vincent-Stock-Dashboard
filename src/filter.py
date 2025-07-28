@@ -12,6 +12,8 @@ from plotly.subplots import make_subplots
 from streamlit_tags import st_tags
 from vnstock import Vnstock
 
+from src.config import RAW_DATA_DIR
+from src.market_overview import get_list_stock
 from src.optimize_portfolio import get_port, get_port_price
 from src.plots import foreigner_trading_stock, get_firm_pricing, get_stock_price
 from src.quant_profile import calculate_extended_metrics
@@ -57,29 +59,27 @@ def filter_components():
     stock_sets = []  # Mỗi tiêu chí lọc tạo ra một tập hợp mã cổ phiếu
 
     # Lọc theo sàn giao dịch
-    exchange = st.selectbox(
-        "Chọn sàn giao dịch",
-        options=[
-            # "HOSE",
-            # "HNX",
-            # "UPCOM",
-            "VN30",
-            "VN100",
-            "HNX30",
-            "VNMidCap",
-            "VNSmallCap",
-            "VNAllShare",
-            "HNXCon",
-            "HNXFin",
-            "HNXLCap",
-            "HNXMSCap",
-            "HNXMan",
-        ],
-        index=0,
-    )
-    stock_by_exchange = (
-        Vnstock().stock("ACB", source="TCBS").listing.symbols_by_group(exchange).tolist()
-    )
+    # exchange = st.selectbox(
+    #     "Chọn sàn giao dịch",
+    #     options=[
+    #         # "HOSE",
+    #         # "HNX",
+    #         # "UPCOM",
+    #         "VN30",
+    #         "VN100",
+    #         "HNX30",
+    #         "VNMidCap",
+    #         "VNSmallCap",
+    #         "VNAllShare",
+    #         "HNXCon",
+    #         "HNXFin",
+    #         "HNXLCap",
+    #         "HNXMSCap",
+    #         "HNXMan",
+    #     ],
+    #     index=0,
+    # )
+    stock_by_exchange = pd.read_csv(RAW_DATA_DIR / "list_VN100.csv")["symbol"].tolist()
 
     stock_sets.append(set(stock_by_exchange))
     # Lọc theo ngành nghề
