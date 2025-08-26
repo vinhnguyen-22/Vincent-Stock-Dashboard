@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from math import sqrt
 from tabnanny import check
@@ -119,32 +120,39 @@ def filter_components():
 def filter_by_ownerratio(stocks, end_date):
     """Filter stocks based on foreign ownership ratio and show trend."""
 
-    start_date = end_date - timedelta(days=30)
+    start_date = end_date - timedelta(days=365)
     stocks_data = {}
 
-    for symbol in stocks:
-        foreign = foreigner_trading_stock(
-            symbol, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
-        ).sort_index(ascending=False)
-        foreign.ffill(inplace=True)
+    def process_symbol(symbol):
+        try:
+            foreign = foreigner_trading_stock(
+                symbol, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
+            ).sort_index(ascending=False)
+            foreign.ffill(inplace=True)
 
-        if foreign is not None and not foreign.empty:
-            try:
+            if foreign is not None and not foreign.empty:
                 curr = foreign["currentRoom"].iloc[-1]
                 total = foreign["totalRoom"].iloc[-1]
                 if total > 0:
                     ownership_ratio = round((total - curr) / total * 100, 2)
-
                     trend_series = (
                         (foreign["totalRoom"] - foreign["currentRoom"])
                         / foreign["totalRoom"]
                         * 100
                     ).fillna(0)
                     trend = [round(val, 2) for val in trend_series.tolist()]
+                    return symbol, {"Ownership Ratio": ownership_ratio, "lines": trend}
+        except Exception as e:
+            st.error(f"Lỗi xử lý dữ liệu cho mã {symbol}: {e}")
+        return None
 
-                    stocks_data[symbol] = {"Ownership Ratio": ownership_ratio, "lines": trend}
-            except Exception as e:
-                st.error(f"Lỗi xử lý dữ liệu cho mã {symbol}: {e}")
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {executor.submit(process_symbol, symbol): symbol for symbol in stocks}
+        for future in as_completed(futures):
+            result = future.result()
+            if result:
+                symbol, data = result
+                stocks_data[symbol] = data
 
     df_result = (
         pd.DataFrame.from_dict(stocks_data, orient="index")
@@ -157,7 +165,7 @@ def filter_by_ownerratio(stocks, end_date):
         df_result,
         column_config={
             "lines": st.column_config.LineChartColumn(
-                "Xu hướng sở hữu (%) 30 ngày",
+                "Xu hướng sở hữu (%) 365 ngày",
                 width="medium",
             )
         },
@@ -203,7 +211,7 @@ def filter_stocks_by_industry():
 
 def filter_by_pricing_stock(stocks, end_date):
     """Filter stocks based on pricing and safety margin."""
-    start_date = end_date - timedelta(days=90)
+    start_date = end_date - timedelta(days=365)
     data = []
 
     for stock in stocks:
