@@ -28,3 +28,4 @@ scikit-learn
 streamlit_option_menu
 gspread
 oauth2client
+statsmodels
