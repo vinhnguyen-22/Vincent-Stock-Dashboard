@@ -13,7 +13,7 @@ from plotly.subplots import make_subplots
 from streamlit_tags import st_tags
 from vnstock import Vnstock
 
-from src.config import RAW_DATA_DIR
+from src.config import INTERIM_DATA_DIR, RAW_DATA_DIR
 from src.market_overview import get_list_stock
 from src.optimize_portfolio import get_port, get_port_price
 from src.plots import foreigner_trading_stock, get_firm_pricing, get_stock_price
@@ -80,7 +80,7 @@ def filter_components():
     #     ],
     #     index=0,
     # )
-    stock_by_exchange = pd.read_csv(RAW_DATA_DIR / "list_VN100.csv")["symbol"].tolist()
+    stock_by_exchange = pd.read_csv(RAW_DATA_DIR / "list_stock.csv")["symbol"].tolist()
 
     stock_sets.append(set(stock_by_exchange))
     # Lọc theo ngành nghề
@@ -177,9 +177,10 @@ def filter_by_ownerratio(stocks, end_date):
 
 def filter_stocks_by_industry():
     # Lấy dữ liệu ngành từ API
-    stock = Vnstock().stock("ACB", source="VCI")
-    df = stock.listing.symbols_by_industries()
-
+    # stock = Vnstock().stock("ACB", source="VCI")
+    # df = stock.listing.symbols_by_industries()
+    # df.to_csv(INTERIM_DATA_DIR / "symbols_by_industries.csv", index=False)
+    df = pd.read_csv(INTERIM_DATA_DIR / "symbols_by_industries.csv")
     # UI chọn ngành cấp 1
     nganh1 = st.selectbox("Chọn ngành cấp 1", sorted(df["icb_name2"].unique()))
     df_nganh1 = df[df["icb_name2"] == nganh1]

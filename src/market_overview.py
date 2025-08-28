@@ -26,7 +26,12 @@ def overview_market():
     st.title("Vincent Stock Market Dashboard")
     date = datetime.now().strftime("%Y-%m-%d")
     date = st.date_input("Chọn ngày", date)
-    stock_by_exchange = pd.read_csv(RAW_DATA_DIR / "list_VN100.csv")["symbol"].tolist()
+    # Allow user to choose between VN100 or all stocks
+    stock_list_choice = st.radio("Chọn danh sách cổ phiếu:", ["VN100", "Tất cả cổ phiếu sàn HOSE"])
+    if stock_list_choice == "VN100":
+        stock_by_exchange = pd.read_csv(RAW_DATA_DIR / "list_vn100.csv")["symbol"].tolist()
+    else:
+        stock_by_exchange = pd.read_csv(RAW_DATA_DIR / "list_stock.csv")["symbol"].tolist()
 
     # --- ĐA LUỒNG ---
     def fetch_one(ticker):
@@ -40,7 +45,7 @@ def overview_market():
     dfs = []
     progress_bar = st.progress(0, text="Đang lấy dữ liệu các mã...")
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    with ThreadPoolExecutor(max_workers=20) as executor:
         futures = {executor.submit(fetch_one, ticker): ticker for ticker in stock_by_exchange}
         total = len(stock_by_exchange)
         for i, future in enumerate(as_completed(futures), 1):
@@ -346,10 +351,31 @@ def overview_market():
             fig.update_traces(
                 textposition="top center", marker=dict(line=dict(width=1, color="DarkSlateGrey"))
             )
+            text_all = df["code"]
+            top_symbols = df.nlargest(30, "totalVal")["code"].tolist()
+            text_top30 = df["code"].where(df["code"].isin(top_symbols), "")
 
             fig.update_layout(
                 xaxis_title=f"{trader_type} Trader Buy Concentration (%)",
                 yaxis_title=f"{trader_type} Trader Sell Concentration (%)",
+                updatemenus=[
+                    {
+                        "buttons": [
+                            {
+                                "label": "Top 30",
+                                "method": "update",
+                                "args": [{"text": [text_top30]}],  # list text cùng độ dài
+                            },
+                            {"label": "All", "method": "update", "args": [{"text": [text_all]}]},
+                            {
+                                "label": "None",
+                                "method": "update",
+                                "args": [{"text": [""]}],  # ẩn hết
+                            },
+                        ],
+                        "direction": "down",
+                    }
+                ],
             )
 
             st.plotly_chart(fig, use_container_width=True)
