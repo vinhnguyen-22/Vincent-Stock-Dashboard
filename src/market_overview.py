@@ -29,7 +29,7 @@ def overview_market():
     # Allow user to choose between VN100 or all stocks
     stock_list_choice = st.radio("Chọn danh sách cổ phiếu:", ["VN100", "Tất cả cổ phiếu sàn HOSE"])
     if stock_list_choice == "VN100":
-        stock_by_exchange = pd.read_csv(RAW_DATA_DIR / "list_vn100.csv")["symbol"].tolist()
+        stock_by_exchange = pd.read_csv(RAW_DATA_DIR / "list_VN100.csv")["symbol"].tolist()
     else:
         stock_by_exchange = pd.read_csv(RAW_DATA_DIR / "list_stock.csv")["symbol"].tolist()
 
